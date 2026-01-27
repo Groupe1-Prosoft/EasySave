@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Éléments de solution/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="EasyLog/EasyLog.csproj" />
   <Project Path="EasySave/EasySave.csproj" />
 </Solution>

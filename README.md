@@ -1,7 +1,7 @@
 # EasySave - ProSoft Backup Software
 
 Welcome to the official repository of the **EasySave** project.
-This software is developed as part of the "System Programming" module (CESI - A3 FISA INFO).
+This software is developed as part of the "Génie Logiciel" module (CESI - A3 FISA INFO).
 
 ## Development Team
 * **Yanis**

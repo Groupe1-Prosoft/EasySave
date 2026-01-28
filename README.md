@@ -1,47 +1,47 @@
-# EasySave - Logiciel de Sauvegarde ProSoft
+# EasySave - ProSoft Backup Software
 
-Bienvenue sur le dépôt officiel du projet **EasySave**.
-Ce logiciel est développé dans le cadre du bloc "Programmation Système" (CESI - A3 FISA INFO).
+Welcome to the official repository of the **EasySave** project.
+This software is developed as part of the "System Programming" module (CESI - A3 FISA INFO).
 
-## L'Équipe de Développement
-* **Yanis** (Project Lead / Dev)
-* **Rayene** (Dev)
-* **Fayçal** (Dev)
-* **Maxime** (Dev)
+## Development Team
+* **Yanis**
+* **Rayene**
+* **Fayçal**
+* **Maxime**
 
-## Description du Projet
-EasySave est une solution de sauvegarde développée en C# .NET Core pour l'entreprise **ProSoft**.
-Le projet suit une évolution en 3 phases majeures :
-* **V1.0 :** Application Console, Sauvegardes séquentielles, Logs JSON.
-* **V2.0 :** Interface Graphique (WPF/MVVM), Chiffrement (CryptoSoft), Logs XML/JSON.
-* **V3.0 :** Sauvegardes parallèles, Priorisation des tâches, Centralisation des logs.
+## Project Description
+EasySave is a backup solution developed in C# .NET Core for **ProSoft**.
+The project follows a 3-phase development cycle:
+* **V1.0:** Console Application, Sequential backups, JSON Logs.
+* **V2.0:** Graphical User Interface (MVVM), Encryption (CryptoSoft), XML/JSON Logs.
+* **V3.0:** Parallel backups, Task prioritization, Centralized logs.
 
-## Stack Technique
-* **Langage :** C#
-* **Framework :** .NET 8.0
-* **IDE :** Visual Studio 2022 (ou supérieur)
-* **Gestion de version :** Git & GitHub
+## Technical Stack
+* **Language:** C#
+* **Framework:** .NET 8.0
+* **IDE:** Visual Studio 2022 (or newer)
+* **Version Control:** Git & GitHub
 
-## Architecture de la Solution
-La solution est divisée en plusieurs projets pour respecter les principes de séparation des responsabilités :
-1.  **EasySave (Console App) :** Point d'entrée de l'application, gestion des menus et de l'exécution.
-2.  **EasyLog (Class Library / DLL) :** Gestion indépendante des logs (JSON/XML) et des états en temps réel.
+## Solution Architecture
+The solution is divided into several projects to adhere to the Separation of Concerns principle:
+1.  **EasySave (Console App):** Application entry point, menu management, and execution.
+2.  **EasyLog (Class Library / DLL):** Independent log management (JSON/XML) and real-time state tracking.
 
-## Règles de Développement (Workflow)
-Pour garantir la qualité du code et éviter les conflits, nous respectons les règles suivantes :
+## Development Workflow
+To ensure code quality and avoid conflicts, we strictly follow these rules:
 
-1.  **Branching :**
-    * `main` : Version stable et livrable (ne jamais toucher directement).
-    * `develop` : Version de développement commune.
-    * `feature/nom-fonctionnalité` : Branche de travail pour chaque tâche (ex: `feature/logs-json`, `feature/interface`).
+1.  **Branching Strategy:**
+    * `main`: Stable and deliverable version (never commit directly here).
+    * `develop`: Common development version.
+    * `feature/feature-name`: Working branch for each task (e.g., `feature/json-logs`, `feature/interface`).
 
-2.  **Convention :**
-    * Pas de noms de personnes dans les branches.
-    * Code et commentaires en Anglais (ou Français selon accord interne).
-    * Pas de code mort ni de duplication (DRY).
+2.  **Conventions:**
+    * No personal names in branch names.
+    * Code and comments must be in English.
+    * No dead code or duplication (DRY principle).
 
-## Installation & Lancement
-1.  Cloner le dépôt : `git clone https://github.com/ProSoft-EasySave/EasySave.git`
-2.  Ouvrir le fichier `.sln` dans Visual Studio.
-3.  Vérifier que le projet de démarrage est bien **EasySave**.
-4.  Compiler et lancer (F5).
+## Installation & Usage
+1.  Clone the repository: `git clone https://github.com/yyyanis/EasySave.git`
+2.  Open the `.sln` file in Visual Studio.
+3.  Ensure the startup project is set to **EasySave**.
+4.  Build and Start (F5).

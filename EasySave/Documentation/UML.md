@@ -4,51 +4,50 @@ Here UML diagrams for the first deliverable
 
 ## 1. Use Case
 ```mermaid
-usecaseDiagram
-    actor "User" as U
+graph LR
+    %% Actor
+    U((User))
 
-    package "EasySave 1.0 (Console)" {
-        usecase "Create a Backup Job" as UC_Create
-        usecase "List Backup Jobs" as UC_List
-        usecase "Delete a Backup Job" as UC_Delete
-        usecase "Execute Backup Job(s)" as UC_Exec
-        usecase "Change Language (EN/FR)" as UC_Lang
+    %% System Boundary
+    subgraph "EasySave 1.0 (Console)"
+        %% Use Cases
+        UC_Create([Create a Backup Job])
+        UC_List([List Backup Jobs])
+        UC_Delete([Delete a Backup Job])
+        UC_Exec([Execute Backup Job_s_])
+        UC_Lang([Change Language EN/FR])
 
-        %% Job Types
-        usecase "Full Backup" as UC_Full
-        usecase "Differential Backup" as UC_Diff
+        %% Detailed Cases
+        UC_Full([Full Backup])
+        UC_Diff([Differential Backup])
+        UC_One([Execute One Job])
+        UC_All([Execute All Jobs])
 
-        %% Execution Types
-        usecase "Execute One Job" as UC_One
-        usecase "Execute All Jobs" as UC_All
+        %% Internal Actions
+        UC_Log([Generate Daily Log JSON])
+        UC_State([Update Real-Time State JSON])
+    end
 
-        %% System Actions
-        usecase "Generate Daily Log (JSON)" as UC_Log
-        usecase "Update Real-Time State (JSON)" as UC_State
-    }
-
-    %% User Interactions
+    %% Relations
     U --> UC_Create
     U --> UC_List
     U --> UC_Delete
     U --> UC_Exec
     U --> UC_Lang
 
-    %% Generalizations
-    UC_Full --|> UC_Create
-    UC_Diff --|> UC_Create
-    UC_One --|> UC_Exec
-    UC_All --|> UC_Exec
+    %% Generalization (Inheritance)
+    UC_Full --> UC_Create
+    UC_Diff --> UC_Create
+    UC_One --> UC_Exec
+    UC_All --> UC_Exec
 
-    %% Includes
-    UC_Exec ..> UC_Log : <<include>>
-    UC_Exec ..> UC_State : <<include>>
+    %% Includes (Dependencies)
+    UC_Exec -.->|include| UC_Log
+    UC_Exec -.->|include| UC_State
 
-    %% Constraints
-    note right of UC_All
-        Sequential Execution
-        Max 5 Jobs
-    end note
+    %% Constraint Note
+    UC_All --- N[Sequential Execution<br/>Max 5 Jobs]
+    style N fill:#fff,stroke:#333,stroke-dasharray: 5 5
 ```
 
 ## 2. Class

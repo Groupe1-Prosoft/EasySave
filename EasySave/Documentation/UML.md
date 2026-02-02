@@ -3,53 +3,7 @@
 Here UML diagrams for the first deliverable
 
 ## 1. Use Case
-```mermaid
-graph LR
-    %% Actor
-    U((User))
-
-    %% System Boundary
-    subgraph "EasySave 1.0 (Console)"
-        %% Use Cases
-        UC_Create([Create a Backup Job])
-        UC_List([List Backup Jobs])
-        UC_Delete([Delete a Backup Job])
-        UC_Exec([Execute Backup Job_s_])
-        UC_Lang([Change Language EN/FR])
-
-        %% Detailed Cases
-        UC_Full([Full Backup])
-        UC_Diff([Differential Backup])
-        UC_One([Execute One Job])
-        UC_All([Execute All Jobs])
-
-        %% Internal Actions
-        UC_Log([Generate Daily Log JSON])
-        UC_State([Update Real-Time State JSON])
-    end
-
-    %% Relations
-    U --> UC_Create
-    U --> UC_List
-    U --> UC_Delete
-    U --> UC_Exec
-    U --> UC_Lang
-
-    %% Generalization (Inheritance)
-    UC_Full --> UC_Create
-    UC_Diff --> UC_Create
-    UC_One --> UC_Exec
-    UC_All --> UC_Exec
-
-    %% Includes (Dependencies)
-    UC_Exec -.->|include| UC_Log
-    UC_Exec -.->|include| UC_State
-
-    %% Constraint Note
-    UC_All --- N[Sequential Execution<br/>Max 5 Jobs]
-    style N fill:#fff,stroke:#333,stroke-dasharray: 5 5
-```
-
+à ajouter 
 ## 2. Class
 ```mermaid
 classDiagram

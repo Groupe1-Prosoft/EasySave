@@ -5,6 +5,16 @@ using System.Text.Json;
 
 namespace EasyLog
 {
+    // --- PARTIE 1 : LE CONTRAT (INTERFACE) ---
+    // C'est ça qui valide le "D" de SOLID (Dependency Inversion).
+    // L'application ne dépendra plus de la classe, mais de ce contrat.
+    public interface ILogger
+    {
+        bool WriteLog(LogData data);
+    }
+
+    // --- PARTIE 2 : LE MODÈLE DE DONNÉES (MVVM : Model) ---
+    // C'est un pur objet de données (DTO), parfait pour le MVVM.
     public class LogData
     {
         public required DateTime Timestamp { get; set; }
@@ -24,16 +34,19 @@ namespace EasyLog
         }
     }
 
-    public class Logger
+    // --- PARTIE 3 : LE MOTEUR (SERVICE) ---
+    // Cette classe implémente l'interface ILogger.
+    public class Logger : ILogger
     {
-        // Exactement comme sur le diagramme : "LogFilePath"
-        private string LogFilePath;
+        private string _logFilePath;
 
         public Logger()
         {
-            LogFilePath = CreateDailyLogFile();
+            _logFilePath = CreateDailyLogFile();
         }
 
+        // Cette méthode reste publique si besoin, ou peut passer privée
+        // si seule l'interface est utilisée. On la garde publique pour l'instant.
         public string CreateDailyLogFile()
         {
             string directoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs");
@@ -44,15 +57,16 @@ namespace EasyLog
             return Path.Combine(directoryPath, DateTime.Now.ToString("yyyy-MM-dd") + ".json");
         }
 
+        // Implémentation de la méthode définie dans l'interface
         public bool WriteLog(LogData data)
         {
             try
             {
                 List<LogData> logs = new List<LogData>();
 
-                if (File.Exists(LogFilePath))
+                if (File.Exists(_logFilePath))
                 {
-                    string jsonContent = File.ReadAllText(LogFilePath);
+                    string jsonContent = File.ReadAllText(_logFilePath);
                     if (!string.IsNullOrWhiteSpace(jsonContent))
                     {
                         logs = JsonSerializer.Deserialize<List<LogData>>(jsonContent) ?? new List<LogData>();
@@ -62,7 +76,7 @@ namespace EasyLog
                 logs.Add(data);
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(LogFilePath, JsonSerializer.Serialize(logs, options));
+                File.WriteAllText(_logFilePath, JsonSerializer.Serialize(logs, options));
 
                 return true;
             }

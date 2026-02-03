@@ -4,25 +4,44 @@ Here UML diagrams for the first deliverable
 
 ## 1. Use Case
 ```mermaid
-usecaseDiagram
-    actor "User" as U
-    package "EasySave v1.0" {
-        usecase "Create a backup job" as UC1
-        usecase "Execute a backup job" as UC2
-        usecase "Execute sequentially" as UC3
-        usecase "Change language" as UC4
-        usecase "Manage Daily Log" as UC_Log
-        usecase "Update State" as UC_State
-    }
-    U --> UC1
-    U --> UC2
-    U --> UC3
-    U --> UC4
-    UC2 ..> UC_Log : include
-    UC2 ..> UC_State : include
-    UC3 ..> UC2 : extend
-```
+---
+config:
+  layout: fixed
+---
+flowchart LR
+ subgraph S["EasySave 1.0 (Console)"]
+    direction TB
+        UC_Create(["Create a Backup Job"])
+        UC_List(["List Backup Jobs"])
+        UC_Exec(["Execute Backup Job"])
+        UC_Del(["Delete a Backup Job"])
+        UC_Lang(["Change Language"])
+        UC_Full(["Full Backup"])
+        UC_Diff(["Differential Backup"])
+        UC_Log(["Generate Logs JSON"])
+        UC_State(["Update State JSON"])
+  end
+    U(("User")) --> UC_Create & UC_List & UC_Exec & UC_Del & UC_Lang
+    UC_Full --> UC_Create
+    UC_Diff --> UC_Create
+    UC_Exec -. include .-> UC_Log & UC_State
 
+     UC_Create:::caseStyle
+     UC_List:::caseStyle
+     UC_Exec:::caseStyle
+     UC_Del:::caseStyle
+     UC_Lang:::caseStyle
+     UC_Full:::caseStyle
+     UC_Diff:::caseStyle
+     UC_Log:::caseStyle
+     UC_State:::caseStyle
+     U:::actorStyle
+    classDef actorStyle fill:#fff,stroke:#000,stroke-width:2px
+    classDef caseStyle fill:#fff,stroke:#000,stroke-width:1px,rx:20,ry:20
+    classDef sysStyle fill:#f4f4f4,stroke:#000,stroke-width:2px
+
+
+```
 ## 2. Class
 ```mermaid
 classDiagram

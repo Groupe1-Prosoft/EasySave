@@ -5,38 +5,71 @@ using System.Text.Json;
 
 namespace EasyLog
 {
-    public class LogEntry
+    public class LogData
     {
-        public required string Timestamp { get; set; }     // Obligatoire
-        public required string BackupName { get; set; }    // Obligatoire
-        public required string SourcePath { get; set; }    // Obligatoire
-        public required string TargetPath { get; set; }    // Obligatoire
-        public long FileSize { get; set; }
-        public double TransferTime { get; set; }
-    }
-    public static class Logger
-    {
-        public static void WriteLog(LogEntry entry)
+        public required DateTime Timestamp { get; set; }
+        public required string Name { get; set; }
+        public required string Source { get; set; }
+        public required string Target { get; set; }
+        public long Size { get; set; }
+        public long TransferTime { get; set; }
+
+        public string ToJSON() => JsonSerializer.Serialize(this);
+
+        public bool Validate()
         {
-            // Emplacement sécurisé (pas de c:\temp\)
+            return !string.IsNullOrWhiteSpace(Name) &&
+                   !string.IsNullOrWhiteSpace(Source) &&
+                   !string.IsNullOrWhiteSpace(Target);
+        }
+    }
+
+    public class Logger
+    {
+        // Exactement comme sur le diagramme : "LogFilePath"
+        private string LogFilePath;
+
+        public Logger()
+        {
+            LogFilePath = CreateDailyLogFile();
+        }
+
+        public string CreateDailyLogFile()
+        {
             string directoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs");
-            string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".json";
-            string filePath = Path.Combine(directoryPath, fileName);
 
-            if (!Directory.Exists(directoryPath)) Directory.CreateDirectory(directoryPath);
+            if (!Directory.Exists(directoryPath))
+                Directory.CreateDirectory(directoryPath);
 
-            List<LogEntry> logs = new List<LogEntry>();
-            if (File.Exists(filePath))
+            return Path.Combine(directoryPath, DateTime.Now.ToString("yyyy-MM-dd") + ".json");
+        }
+
+        public bool WriteLog(LogData data)
+        {
+            try
             {
-                string json = File.ReadAllText(filePath);
-                logs = JsonSerializer.Deserialize<List<LogEntry>>(json) ?? new List<LogEntry>();
+                List<LogData> logs = new List<LogData>();
+
+                if (File.Exists(LogFilePath))
+                {
+                    string jsonContent = File.ReadAllText(LogFilePath);
+                    if (!string.IsNullOrWhiteSpace(jsonContent))
+                    {
+                        logs = JsonSerializer.Deserialize<List<LogData>>(jsonContent) ?? new List<LogData>();
+                    }
+                }
+
+                logs.Add(data);
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                File.WriteAllText(LogFilePath, JsonSerializer.Serialize(logs, options));
+
+                return true;
             }
-
-            logs.Add(entry);
-
-            // Formatage JSON avec retours à la ligne (pagination) pour Notepad
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            File.WriteAllText(filePath, JsonSerializer.Serialize(logs, options));
+            catch
+            {
+                return false;
+            }
         }
     }
 }

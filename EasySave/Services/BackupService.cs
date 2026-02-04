@@ -144,6 +144,28 @@ namespace EasySave.Services
             foreach (FileInfo file in dir.GetFiles())
             {
                 string targetFilePath = Path.Combine(targetDir, file.Name);
+                // Dans la méthode CopyDirectory, juste après : string targetFilePath = ...
+
+                // --- DÉBUT DU BLOC À AJOUTER ---
+                if (job.Type == BackupType.Differential && File.Exists(targetFilePath))
+                {
+                    FileInfo destFile = new FileInfo(targetFilePath);
+
+                    // Si le fichier source est plus vieux ou égal à la destination
+                    if (file.LastWriteTime <= destFile.LastWriteTime)
+                    {
+                        // On met à jour les compteurs (car le fichier est "traité" en étant ignoré)
+                        state.FilesRemaining--;
+                        state.SizeRemaining -= file.Length;
+                        if (state.SizeRemaining < 0) state.SizeRemaining = 0;
+
+                        // On sauvegarde l'état pour que la barre de progression avance
+                        UpdateStateFile(state);
+
+                        continue; // ON PASSE AU FICHIER SUIVANT
+                    }
+                }
+                // --- FIN DU BLOC À AJOUTER ---
                 long startTime = DateTime.Now.Ticks;
 
                 // --- MISE A JOUR ETAT (Avant copie) ---

@@ -8,31 +8,37 @@
 ```mermaid
 ---
 config:
-  layout: fixed
+  layout: dagre
 ---
 flowchart LR
  subgraph S["EasySave 1.0 (Console)"]
     direction TB
-        UC_Create(["Create a Backup Job"])
+        UC_Create(["Create Backup Job"])
         UC_List(["List Backup Jobs"])
-        UC_Exec(["Execute Backup Job"])
-        UC_Del(["Delete a Backup Job"])
+        UC_Exec(["Execute Single Backup"])
+        UC_ExecSeq(["Execute Sequential Backups"])
+        UC_Del(["Delete Backup Job"])
         UC_Lang(["Change Language"])
+        UC_CLI(["Launch with Parameters<br/>(EasySave.exe 1-3)"])
         UC_Full(["Full Backup"])
         UC_Diff(["Differential Backup"])
-        UC_Log(["Generate Logs JSON"])
+        UC_Log(["Generate Daily Log JSON"])
         UC_State(["Update State JSON"])
   end
-    U(("User")) --> UC_Create & UC_List & UC_Exec & UC_Del & UC_Lang
-    UC_Full --> UC_Create
-    UC_Diff --> UC_Create
+    U(("User")) --> UC_Create & UC_List & UC_Exec & UC_ExecSeq & UC_Del & UC_Lang & UC_CLI
+    UC_Create -. extend .-> UC_Full
+    UC_Create -. extend .-> UC_Diff
     UC_Exec -. include .-> UC_Log & UC_State
+    UC_ExecSeq -. include .-> UC_Exec
+    UC_CLI -. include .-> UC_Exec
 
      UC_Create:::caseStyle
      UC_List:::caseStyle
      UC_Exec:::caseStyle
+     UC_ExecSeq:::caseStyle
      UC_Del:::caseStyle
      UC_Lang:::caseStyle
+     UC_CLI:::caseStyle
      UC_Full:::caseStyle
      UC_Diff:::caseStyle
      UC_Log:::caseStyle
@@ -40,7 +46,6 @@ flowchart LR
      U:::actorStyle
     classDef actorStyle fill:#fff,stroke:#000,stroke-width:2px
     classDef caseStyle fill:#fff,stroke:#000,stroke-width:1px,rx:20,ry:20
-    classDef sysStyle fill:#f4f4f4,stroke:#000,stroke-width:2px
 
 
 ```

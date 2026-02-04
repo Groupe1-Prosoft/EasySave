@@ -1,4 +1,4 @@
-# Architecture EasySave 1.0 - Livrable 1
+#  EasySave 1.0 - Livrable 1
 
 Here UML diagrams for the first deliverable
 
@@ -268,7 +268,7 @@ sequenceDiagram
     ConsoleView-->>User: Menu refreshed in English
 ```
 
-## 6. Sequence Diagram differential backup
+## 7. Sequence Diagram differential backup
 ```mermaid
 sequenceDiagram
     actor User
@@ -298,7 +298,7 @@ sequenceDiagram
     ConsoleView-->>User: "Differential backup done"
 ```
 
-## 7. Activity diagram
+## 8. Activity diagram
 ```mermaid
 flowchart TD
     Start([Backup Start]) --> LoadJob[Load selected BackupJob]

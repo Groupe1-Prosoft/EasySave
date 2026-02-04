@@ -125,7 +125,11 @@ classDiagram
     }
     
 
-    
+    class ILogger {
+        <<EasyLog_DLL>>
+        + WriteLog(data: LogData): bool
+    }
+
     class Logger {
         <<EasyLog_DLL>>
         -string LogFilePath
@@ -161,6 +165,7 @@ classDiagram
     
     BackupJob --> BackupType
     BackupState ..> Configuration : persists
+    ILogger ..> Logger : implements
     Logger --> LogData : creates
 ```
 

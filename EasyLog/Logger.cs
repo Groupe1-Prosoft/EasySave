@@ -1,113 +1,95 @@
 ﻿using System;
-<<<<<<< HEAD
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
 namespace EasyLog
 {
-    // --- PARTIE 1 : LE CONTRAT (INTERFACE) ---
-    // C'est ça qui valide le "D" de SOLID (Dependency Inversion).
-    // L'application ne dépendra plus de la classe, mais de ce contrat.
+    // 1. L'INTERFACE (Le contrat obligatoire pour SOLID)
     public interface ILogger
     {
         bool WriteLog(LogData data);
     }
 
-    // --- PARTIE 2 : LE MODÈLE DE DONNÉES (MVVM : Model) ---
-    // C'est un pur objet de données (DTO), parfait pour le MVVM.
+    // 2. LE MODÈLE DE DONNÉES (La structure du JSON)
     public class LogData
     {
-        public required DateTime Timestamp { get; set; }
-        public required string Name { get; set; }
-        public required string Source { get; set; }
-        public required string Target { get; set; }
+        public string? Name { get; set; }
+        public string? Source { get; set; }
+        public string? Target { get; set; }
         public long Size { get; set; }
         public long TransferTime { get; set; }
-
-        public string ToJSON() => JsonSerializer.Serialize(this);
-
-        public bool Validate()
-        {
-            return !string.IsNullOrWhiteSpace(Name) &&
-                   !string.IsNullOrWhiteSpace(Source) &&
-                   !string.IsNullOrWhiteSpace(Target);
-        }
+        public DateTime Timestamp { get; set; }
     }
 
-    // --- PARTIE 3 : LE MOTEUR (SERVICE) ---
-    // Cette classe implémente l'interface ILogger.
+    // 3. LA CLASSE PRINCIPALE (Le moteur)
     public class Logger : ILogger
     {
         private string _logFilePath;
 
         public Logger()
         {
-            _logFilePath = CreateDailyLogFile();
-        }
+            // On définit le dossier : AppData/EasySave/Logs
+            string directoryPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "EasySave",
+                "Logs"
+            );
 
-        // Cette méthode reste publique si besoin, ou peut passer privée
-        // si seule l'interface est utilisée. On la garde publique pour l'instant.
-        public string CreateDailyLogFile()
-        {
-            string directoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs");
-
+            // Si le dossier n'existe pas, on le crée
             if (!Directory.Exists(directoryPath))
+            {
                 Directory.CreateDirectory(directoryPath);
+            }
 
-            return Path.Combine(directoryPath, DateTime.Now.ToString("yyyy-MM-dd") + ".json");
+            // Le nom du fichier est la date d'aujourd'hui (ex: 2023-10-25.json)
+            string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".json";
+            _logFilePath = Path.Combine(directoryPath, fileName);
         }
 
-        // Implémentation de la méthode définie dans l'interface
         public bool WriteLog(LogData data)
         {
             try
             {
+                // Liste temporaire pour lire le fichier existant
                 List<LogData> logs = new List<LogData>();
 
+                // Si le fichier existe déjà, on récupère son contenu
                 if (File.Exists(_logFilePath))
                 {
-                    string jsonContent = File.ReadAllText(_logFilePath);
-                    if (!string.IsNullOrWhiteSpace(jsonContent))
+                    string existingJson = File.ReadAllText(_logFilePath);
+                    // On vérifie que le fichier n'est pas vide pour éviter de planter
+                    if (!string.IsNullOrWhiteSpace(existingJson))
                     {
-                        logs = JsonSerializer.Deserialize<List<LogData>>(jsonContent) ?? new List<LogData>();
+                        try
+                        {
+                            logs = JsonSerializer.Deserialize<List<LogData>>(existingJson) ?? new List<LogData>();
+                        }
+                        catch
+                        {
+                            // Si le JSON est corrompu, on repart sur une liste vide
+                            logs = new List<LogData>();
+                        }
                     }
                 }
 
+                // On ajoute le nouveau log
                 logs.Add(data);
 
+                // On sauvegarde le tout avec une jolie mise en forme (Indented)
                 var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(_logFilePath, JsonSerializer.Serialize(logs, options));
+                string jsonOutput = JsonSerializer.Serialize(logs, options);
+
+                File.WriteAllText(_logFilePath, jsonOutput);
 
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                // En cas de pépin (disque plein, droits d'accès...)
+                Console.WriteLine($"[Logger Error] {ex.Message}");
                 return false;
             }
-=======
-
-namespace EasyLog
-{
-    public class Logger
-    {
-        // Constructeur qui ne fait rien (juste pour que ça compile)
-        public Logger(string path)
-        {
-            // On fait semblant d'initialiser le dossier
-            Console.WriteLine($"[DEBUG] Logger initialisé vers : {path}");
-        }
-
-        // Méthode qui simule l'écriture
-        public void WriteLog(string jobName, string source, string target, long size, long time)
-        {
-            // Au lieu d'écrire dans un fichier JSON (boulot de ton collègue),
-            // on écrit juste dans la console pour te prouver que ton BackupService a bien appelé le logger.
-
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"   -> [LOG APPELÉ] Job: {jobName} | Fichier: {source} | Temps: {time}ms");
-            Console.ResetColor();
->>>>>>> feature/Backup
         }
     }
 }

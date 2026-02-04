@@ -1,18 +1,15 @@
 ﻿using System;
-<<<<<<< HEAD
 using System.Collections.Generic;
-using EasyLog; // INDISPENSABLE : Importe ta DLL (Model + Service)
+using EasySave.Models;
+using EasySave.Services;
+using EasyLog;
 
 namespace EasySave
 {
     class Program
     {
-        // --- PRINCIPE SOLID (DIP) ---
-        // On dépend de l'Abstraction (Interface), pas de la Concrétion (Classe).
-        // C'est ça qui rend ton code "Pro" et modulaire.
-        private static readonly ILogger _logger = new Logger();
+        private static BackupService _backupService = new BackupService();
 
-        // --- GESTION DES LANGUES (VUE) ---
         enum Language { English, French }
         static Language _lang = Language.English;
 
@@ -38,12 +35,11 @@ namespace EasySave
             ["EnterTargetPath"] = "Enter Target Path: ",
             ["SelectType"] = "Select Type (1. Full / 2. Differential): ",
             ["JobCreated"] = "Job created successfully !",
+            ["JobLimitReached"] = "Error: You cannot have more than 5 backup jobs.",
             ["ExecuteHeader"] = "--- Execute a Backup Job ---",
-            ["EnterJobNumber"] = "Enter job number to execute: ",
-            ["ExecutionInProgress"] = "Execution in progress (Simulated)...",
-            ["BackupFinished"] = "Backup finished successfully!",
-            ["LogSuccess"] = "Log file updated: ",
-            ["LogError"] = "Error writing log file.",
+            ["EnterJobNumber"] = "Enter job number to execute (1-5): ",
+            ["JobNotFound"] = "Job not found.",
+            ["BackupFinished"] = "Backup finished!",
             ["PressEnterReturn"] = "Press Enter to return to menu..."
         };
 
@@ -69,12 +65,11 @@ namespace EasySave
             ["EnterTargetPath"] = "Entrez le chemin cible : ",
             ["SelectType"] = "Sélectionnez le type (1. Complète / 2. Différentielle) : ",
             ["JobCreated"] = "Tâche créée avec succès !",
+            ["JobLimitReached"] = "Erreur : Vous ne pouvez pas avoir plus de 5 tâches de sauvegarde.",
             ["ExecuteHeader"] = "--- Exécuter une tâche de sauvegarde ---",
-            ["EnterJobNumber"] = "Entrez le numéro de la tâche à exécuter : ",
-            ["ExecutionInProgress"] = "Exécution en cours (Simulation)...",
-            ["BackupFinished"] = "Sauvegarde terminée avec succès !",
-            ["LogSuccess"] = "Fichier de log mis à jour : ",
-            ["LogError"] = "Erreur lors de l'écriture du log.",
+            ["EnterJobNumber"] = "Entrez le numéro de la tâche à exécuter (1-5) : ",
+            ["JobNotFound"] = "Tâche non trouvée.",
+            ["BackupFinished"] = "Sauvegarde terminée !",
             ["PressEnterReturn"] = "Appuyez sur Entrée pour revenir au menu..."
         };
 
@@ -104,23 +99,96 @@ namespace EasySave
 
                 switch (userChoice)
                 {
-                    case "1":
-                        ListJobs();
-                        break;
-                    case "2":
-                        CreateJob();
-                        break;
-                    case "3":
-                        ExecuteJob(); // C'est ici que la magie opère !
-                        break;
-                    case "4":
-                        keepRunning = false;
-                        Console.WriteLine(L("Goodbye"));
-                        break;
-                    default:
-                        DisplayMessage(L("InvalidOption"), ConsoleColor.Red);
-                        break;
+                    case "1": ListJobs(); break;
+                    case "2": CreateJob(); break;
+                    case "3": ExecuteJob(); break;
+                    case "4": keepRunning = false; Console.WriteLine(L("Goodbye")); break;
+                    default: DisplayMessage(L("InvalidOption"), ConsoleColor.Red); break;
                 }
+            }
+        }
+
+        static void ListJobs()
+        {
+            Console.Clear();
+            ShowHeader();
+            Console.WriteLine(L("ListHeader"));
+
+            if (_backupService.Jobs.Count == 0)
+            {
+                Console.WriteLine(L("NoJobs"));
+            }
+            else
+            {
+                for (int i = 0; i < _backupService.Jobs.Count; i++)
+                {
+                    var job = _backupService.Jobs[i];
+                    Console.WriteLine($"{i + 1}. {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}");
+                }
+            }
+            WaitUser();
+        }
+
+        static void CreateJob()
+        {
+            Console.Clear();
+            ShowHeader();
+            Console.WriteLine(L("CreateHeader"));
+
+            if (_backupService.Jobs.Count >= 5)
+            {
+                DisplayMessage(L("JobLimitReached"), ConsoleColor.Red);
+                return;
+            }
+
+            Console.Write(L("EnterJobName"));
+            string name = Console.ReadLine();
+            Console.Write(L("EnterSourcePath"));
+            string source = Console.ReadLine();
+            Console.Write(L("EnterTargetPath"));
+            string target = Console.ReadLine();
+            Console.Write(L("SelectType"));
+            string typeSelection = Console.ReadLine();
+            BackupType type = (typeSelection == "2") ? BackupType.Differential : BackupType.Full;
+
+            BackupJob newJob = new BackupJob(name, source, target, type);
+            bool added = _backupService.AddJob(newJob);
+
+            if (added) DisplayMessage(L("JobCreated"), ConsoleColor.Green);
+            else DisplayMessage(L("JobLimitReached"), ConsoleColor.Red);
+        }
+
+        static void ExecuteJob()
+        {
+            Console.Clear();
+            ShowHeader();
+            Console.WriteLine(L("ExecuteHeader"));
+
+            if (_backupService.Jobs.Count == 0)
+            {
+                Console.WriteLine(L("NoJobs"));
+                WaitUser();
+                return;
+            }
+
+            for (int i = 0; i < _backupService.Jobs.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {_backupService.Jobs[i].Name}");
+            }
+
+            Console.WriteLine();
+            Console.Write(L("EnterJobNumber"));
+            string input = Console.ReadLine();
+
+            if (int.TryParse(input, out int jobNumber) && jobNumber >= 1 && jobNumber <= _backupService.Jobs.Count)
+            {
+                BackupJob jobToRun = _backupService.Jobs[jobNumber - 1];
+                _backupService.ExecuteJob(jobToRun);
+                DisplayMessage(L("BackupFinished"), ConsoleColor.Green);
+            }
+            else
+            {
+                DisplayMessage(L("JobNotFound"), ConsoleColor.Red);
             }
         }
 
@@ -135,11 +203,7 @@ namespace EasySave
 
             if (choice == "2") _lang = Language.French;
             else if (choice == "1") _lang = Language.English;
-            else
-            {
-                Console.WriteLine(_en["InvalidLanguage"]);
-                _lang = Language.English;
-            }
+            else { Console.WriteLine(_en["InvalidLanguage"]); _lang = Language.English; }
             System.Threading.Thread.Sleep(400);
         }
 
@@ -155,82 +219,6 @@ namespace EasySave
             Console.WriteLine("                       |___/                           ");
             Console.WriteLine("---------------------------------------");
             Console.ResetColor();
-        }
-
-        static void ListJobs()
-        {
-            Console.Clear();
-            ShowHeader();
-            Console.WriteLine(L("ListHeader"));
-            Console.WriteLine(L("NoJobs")); // Pour l'instant on n'a pas la liste réelle
-            WaitUser();
-        }
-
-        static void CreateJob()
-        {
-            Console.Clear();
-            ShowHeader();
-            Console.WriteLine(L("CreateHeader"));
-
-            Console.Write(L("EnterJobName"));
-            string name = Console.ReadLine(); // On capture mais on ne stocke pas encore
-
-            Console.Write(L("EnterSourcePath"));
-            Console.ReadLine();
-
-            Console.Write(L("EnterTargetPath"));
-            Console.ReadLine();
-
-            Console.Write(L("SelectType"));
-            Console.ReadLine();
-
-            DisplayMessage(L("JobCreated"), ConsoleColor.Green);
-        }
-
-        // --- C'EST ICI QUE TU UTILISES TA DLL (MVVM : Le ViewModel appelle le Modèle) ---
-        static void ExecuteJob()
-        {
-            Console.Clear();
-            ShowHeader();
-            Console.WriteLine(L("ExecuteHeader"));
-
-            Console.Write(L("EnterJobNumber"));
-            string jobId = Console.ReadLine(); // Simulation du choix
-
-            Console.WriteLine(L("ExecutionInProgress"));
-
-            // Simulation d'un travail (barre de progression fictive)
-            System.Threading.Thread.Sleep(1000);
-
-            // 1. CRÉATION DU MODÈLE (LogData)
-            // On simule des données comme si le travail venait de se faire
-            var logData = new LogData
-            {
-                Name = $"Job_Numero_{jobId}",
-                Source = @"C:\Utilisateurs\Documents",
-                Target = @"D:\Sauvegardes\Documents",
-                Size = 125000,          // 125 Ko
-                TransferTime = 540,     // 540 ms
-                Timestamp = DateTime.Now
-            };
-
-            // 2. APPEL DU SERVICE VIA L'INTERFACE (Logger)
-            bool success = _logger.WriteLog(logData);
-
-            if (success)
-            {
-                Console.WriteLine(L("BackupFinished"));
-                // Petite astuce pour afficher le chemin du fichier (on triche un peu en castant pour l'affichage)
-                if (_logger is Logger concreteLogger)
-                {
-                    Console.WriteLine($"{L("LogSuccess")} {concreteLogger.CreateDailyLogFile()}");
-                }
-                DisplayMessage("", ConsoleColor.Green);
-            }
-            else
-            {
-                DisplayMessage(L("LogError"), ConsoleColor.Red);
-            }
         }
 
         static void DisplayMessage(string message, ConsoleColor color)
@@ -250,50 +238,5 @@ namespace EasySave
             Console.WriteLine(L("PressEnterReturn"));
             Console.ReadLine();
         }
-=======
-using EasyLog; // Ça ne doit plus être souligné en rouge
-
-class Program
-{
-    static void Main(string[] args)
-    {
-        Console.WriteLine("--- TEST FINAL DU LOGGER ---");
-
-        // 1. Création d'une fausse donnée (Simulation)
-        var testLog = new LogData
-        {
-            Name = "Sauvegarde_Test_Validation",
-            Source = @"C:\Projet\Source",
-            Target = @"D:\Backup\Destination",
-            Size = 4500,           // 4.5 Ko
-            TransferTime = 150,    // 150 ms
-            Timestamp = DateTime.Now
-        };
-
-        // 2. Initialisation de ton Logger
-        Logger logger = new Logger();
-
-        // 3. Écriture
-        Console.Write("Tentative d'écriture... ");
-        bool reussite = logger.WriteLog(testLog);
-
-        // 4. Vérification
-        if (reussite)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("SUCCÈS !");
-            Console.ResetColor();
-            Console.WriteLine($"Le fichier JSON a été généré ici :");
-            Console.WriteLine(logger.CreateDailyLogFile());
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("ÉCHEC (Erreur d'écriture).");
-        }
-
-        Console.WriteLine("\nAppuie sur Entrée pour fermer.");
-        Console.ReadLine();
->>>>>>> EasyLog-DLL
     }
 }

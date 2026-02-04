@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Linq; // Nécessaire pour les listes
 using EasySave.Models;
 using EasyLog;
 
@@ -11,30 +13,70 @@ namespace EasySave.Services
         public List<BackupJob> Jobs { get; set; }
         private readonly ILogger _logger;
 
+        private readonly string _jobsFilePath;
+        private readonly string _stateFilePath; // Nouveau fichier state.json
+
         public BackupService()
         {
-            Jobs = new List<BackupJob>();
-            // Attention : Assure-toi que ta DLL EasyLog est bien référencée
+            string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave");
+            if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
+
+            _jobsFilePath = Path.Combine(appDataPath, "jobs.json");
+            _stateFilePath = Path.Combine(appDataPath, "state.json"); // Définition du chemin
+
             _logger = new EasyLog.Logger();
+            LoadJobs();
         }
 
-        // Ajoute un job (Max 5)
+        // --- GESTION DES JOBS (CRUD) ---
         public bool AddJob(BackupJob job)
         {
             if (Jobs.Count >= 5) return false;
             Jobs.Add(job);
+            SaveJobs();
             return true;
         }
 
+        public bool DeleteJob(int index)
+        {
+            int realIndex = index - 1;
+            if (realIndex >= 0 && realIndex < Jobs.Count)
+            {
+                Jobs.RemoveAt(realIndex);
+                SaveJobs();
+                return true;
+            }
+            return false;
+        }
+
+        private void SaveJobs()
+        {
+            try
+            {
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                File.WriteAllText(_jobsFilePath, JsonSerializer.Serialize(Jobs, options));
+            }
+            catch (Exception ex) { Console.WriteLine($"Erreur save jobs: {ex.Message}"); }
+        }
+
+        private void LoadJobs()
+        {
+            try
+            {
+                if (File.Exists(_jobsFilePath))
+                {
+                    string json = File.ReadAllText(_jobsFilePath);
+                    Jobs = JsonSerializer.Deserialize<List<BackupJob>>(json) ?? new List<BackupJob>();
+                }
+                else { Jobs = new List<BackupJob>(); }
+            }
+            catch { Jobs = new List<BackupJob>(); }
+        }
+
+        // --- EXÉCUTION & ÉTAT (STATE) ---
+
         public void ExecuteJob(BackupJob job)
         {
-            // Sécurité pour éviter les plantages si les chemins sont vides
-            if (string.IsNullOrWhiteSpace(job.SourceDirectory) || string.IsNullOrWhiteSpace(job.TargetDirectory))
-            {
-                Console.WriteLine($"[ERREUR] Chemins invalides pour le job {job.Name}");
-                return;
-            }
-
             if (!Directory.Exists(job.SourceDirectory))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -42,68 +84,92 @@ namespace EasySave.Services
                 Console.ResetColor();
                 return;
             }
-
-            // Création du dossier cible s'il n'existe pas
             if (!Directory.Exists(job.TargetDirectory)) Directory.CreateDirectory(job.TargetDirectory);
 
-            Console.WriteLine($"Traitement de : {job.Name} [{job.Type}]...");
+            // 1. Initialisation de l'État (State)
+            var state = new BackupState
+            {
+                JobName = job.Name,
+                Timestamp = DateTime.Now,
+                State = "ACTIF",
+                SourceDirectory = job.SourceDirectory, // Ajout pour info
+                TargetDirectory = job.TargetDirectory  // Ajout pour info
+            };
 
-            // Appel de la copie récursive
-            CopyDirectory(job.SourceDirectory, job.TargetDirectory, job);
+            // 2. Calcul des Totaux (Fichiers et Taille)
+            CalculateTotals(job.SourceDirectory, state);
 
-            Console.WriteLine("--- Fin du job ---");
+            // Premier enregistrement de l'état (Début)
+            UpdateStateFile(state);
+
+            Console.WriteLine($"Traitement de : {job.Name} ({state.TotalFiles} fichiers)...");
+
+            // 3. Lancement de la copie
+            CopyDirectory(job.SourceDirectory, job.TargetDirectory, job, state);
+
+            // 4. Fin du travail
+            state.State = "NON ACTIF";
+            state.CurrentSourceFile = "";
+            state.CurrentTargetFile = "";
+            UpdateStateFile(state);
         }
 
-        private void CopyDirectory(string sourceDir, string targetDir, BackupJob job)
+        private void CalculateTotals(string path, BackupState state)
+        {
+            try
+            {
+                DirectoryInfo dir = new DirectoryInfo(path);
+                // On compte tous les fichiers récursivement
+                var files = dir.GetFiles("*", SearchOption.AllDirectories);
+
+                state.TotalFiles = files.Length;
+                state.FilesRemaining = files.Length;
+
+                long size = 0;
+                foreach (var f in files) size += f.Length;
+
+                state.TotalSize = size;
+                state.SizeRemaining = size;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur calcul taille: {ex.Message}");
+            }
+        }
+
+        private void CopyDirectory(string sourceDir, string targetDir, BackupJob job, BackupState state)
         {
             DirectoryInfo dir = new DirectoryInfo(sourceDir);
 
-            // Si le dossier source n'existe pas (sécurité supplémentaire pour la récursion)
-            if (!dir.Exists) return;
-
-            // Si le dossier cible n'existe pas pour ce sous-dossier, on le crée
-            Directory.CreateDirectory(targetDir);
-
-            // 1. Copie des fichiers
             foreach (FileInfo file in dir.GetFiles())
             {
                 string targetFilePath = Path.Combine(targetDir, file.Name);
-
-                // --- DÉBUT LOGIQUE DIFFÉRENTIELLE ---
-                if (job.Type == BackupType.Differential)
-                {
-                    if (File.Exists(targetFilePath))
-                    {
-                        // On compare la date de modification
-                        FileInfo destFile = new FileInfo(targetFilePath);
-
-                        // Si le fichier source est plus vieux ou égal au fichier de destination, on ne fait rien
-                        if (file.LastWriteTime <= destFile.LastWriteTime)
-                        {
-                            // On passe au fichier suivant (continue)
-                            continue;
-                        }
-                    }
-                }
-                // --- FIN LOGIQUE DIFFÉRENTIELLE ---
-
                 long startTime = DateTime.Now.Ticks;
+
+                // --- MISE A JOUR ETAT (Avant copie) ---
+                state.CurrentSourceFile = file.FullName;
+                state.CurrentTargetFile = targetFilePath;
+                state.State = "ACTIF"; // On confirme qu'on est actif
+                UpdateStateFile(state); // Écriture JSON en temps réel
 
                 try
                 {
-                    // Le "true" permet d'écraser le fichier s'il existe (nécessaire pour la mise à jour)
+                    // TODO: Différentielle ici plus tard
                     file.CopyTo(targetFilePath, true);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur copie fichier: {ex.Message}");
-                    continue;
+                    Console.WriteLine($"Erreur copie : {ex.Message}");
                 }
 
-                // Calcul du temps en ms
+                // --- MISE A JOUR ETAT (Après copie) ---
+                state.FilesRemaining--;
+                state.SizeRemaining -= file.Length;
+                // On évite les négatifs par sécurité
+                if (state.SizeRemaining < 0) state.SizeRemaining = 0;
+
                 long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
 
-                // --- LOGGING ---
                 var logData = new LogData
                 {
                     Name = job.Name,
@@ -115,15 +181,51 @@ namespace EasySave.Services
                 };
 
                 _logger.WriteLog(logData);
-
-                Console.WriteLine($" -> {file.Name} copié ({timeMs}ms).");
+                Console.WriteLine($" -> {file.Name} copié.");
             }
 
-            // 2. Récursion pour les sous-dossiers
             foreach (DirectoryInfo subDir in dir.GetDirectories())
             {
                 string newTargetDir = Path.Combine(targetDir, subDir.Name);
-                CopyDirectory(subDir.FullName, newTargetDir, job);
+                CopyDirectory(subDir.FullName, newTargetDir, job, state);
+            }
+        }
+
+        // Méthode qui écrit ou met à jour le fichier state.json
+        private void UpdateStateFile(BackupState currentState)
+        {
+            try
+            {
+                List<BackupState> states = new List<BackupState>();
+
+                // Si le fichier existe, on le lit pour ne pas écraser les autres jobs (si on gérait le multi-thread)
+                // Pour la console séquentielle, on écrase ou on met à jour la liste.
+                if (File.Exists(_stateFilePath))
+                {
+                    string json = File.ReadAllText(_stateFilePath);
+                    if (!string.IsNullOrWhiteSpace(json))
+                    {
+                        states = JsonSerializer.Deserialize<List<BackupState>>(json) ?? new List<BackupState>();
+                    }
+                }
+
+                // On cherche si le job existe déjà dans la liste
+                var existingState = states.FirstOrDefault(s => s.JobName == currentState.JobName);
+                if (existingState != null)
+                {
+                    // Mise à jour de l'entrée existante
+                    states.Remove(existingState);
+                }
+
+                // On ajoute le nouvel état frais
+                states.Add(currentState);
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                File.WriteAllText(_stateFilePath, JsonSerializer.Serialize(states, options));
+            }
+            catch
+            {
+                // On ignore les erreurs d'écriture d'état pour ne pas bloquer la copie
             }
         }
     }

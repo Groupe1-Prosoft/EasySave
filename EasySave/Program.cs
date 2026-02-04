@@ -77,6 +77,12 @@ namespace EasySave
 
         static void Main(string[] args)
         {
+            if (args.Length > 0)
+            {
+                ExecuteFromCommandeLine(args[0]);
+                return;
+            }
+
             SelectLanguage();
             Console.Title = L("Title");
 
@@ -238,5 +244,27 @@ namespace EasySave
             Console.WriteLine(L("PressEnterReturn"));
             Console.ReadLine();
         }
+
+        static void ExecuteFromCommandeLine(string argument)
+        {
+            CommandLineService cmdService = new CommandLineService();
+            List<int> jobIndices = cmdService.ParseArgument(argument);
+
+            foreach (int index in jobIndices)
+            {
+                if (index >= 1 && index <= _backupService.Jobs.Count)
+                {
+                    BackupJob job = _backupService.Jobs[index - 1];
+                    Console.WriteLine($"Executing job {index}: {job.Name}");
+                    _backupService.ExecuteJob(job);
+                    Console.WriteLine($"Job {index} completed.");
+                }
+                else
+                {
+                    Console.WriteLine($"Job {index} not found.");
+                }
+            }
+        }
     }
+
 }

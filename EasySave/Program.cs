@@ -22,8 +22,9 @@ namespace EasySave
             ["ListJobs"] = "1. List backup jobs",
             ["CreateJob"] = "2. Create a backup job",
             ["ExecuteJob"] = "3. Execute a backup job",
-            ["DeleteJob"] = "4. Delete a backup job", // NOUVEAU
-            ["Exit"] = "5. Exit",
+            ["ExecuteAllJobs"] = "4. Execute all backup jobs",
+            ["DeleteJob"] = "5. Delete a backup job",
+            ["Exit"] = "6. Exit",
             ["Separator"] = "-----------------------------------",
             ["YourChoice"] = "Your choice: ",
             ["InvalidOption"] = "Invalid option. Please try again.",
@@ -35,13 +36,13 @@ namespace EasySave
             ["EnterSourcePath"] = "Enter Source Path: ",
             ["EnterTargetPath"] = "Enter Target Path: ",
             ["SelectType"] = "Select Type (1. Full / 2. Differential): ",
-            ["JobCreated"] = "Job created & saved successfully !",
+            ["JobCreated"] = "Job created & saved successfully!",
             ["JobLimitReached"] = "Error: Limit of 5 jobs reached.",
             ["ExecuteHeader"] = "--- Execute a Backup Job ---",
-            ["DeleteHeader"] = "--- Delete a Backup Job ---", // NOUVEAU
+            ["DeleteHeader"] = "--- Delete a Backup Job ---",
             ["EnterJobNumber"] = "Enter job number (1-5): ",
             ["JobNotFound"] = "Job not found.",
-            ["JobDeleted"] = "Job deleted successfully.", // NOUVEAU
+            ["JobDeleted"] = "Job deleted successfully.",
             ["BackupFinished"] = "Backup finished!",
             ["PressEnterReturn"] = "Press Enter to return to menu..."
         };
@@ -55,8 +56,9 @@ namespace EasySave
             ["ListJobs"] = "1. Lister les tâches de sauvegarde",
             ["CreateJob"] = "2. Créer une tâche de sauvegarde",
             ["ExecuteJob"] = "3. Exécuter une tâche de sauvegarde",
-            ["DeleteJob"] = "4. Supprimer une tâche de sauvegarde", // NOUVEAU
-            ["Exit"] = "5. Quitter",
+            ["ExecuteAllJobs"] = "4. Exécuter toutes les tâches de sauvegarde",
+            ["DeleteJob"] = "5. Supprimer une tâche de sauvegarde",
+            ["Exit"] = "6. Quitter",
             ["Separator"] = "-----------------------------------",
             ["YourChoice"] = "Votre choix : ",
             ["InvalidOption"] = "Option invalide. Veuillez réessayer.",
@@ -71,10 +73,10 @@ namespace EasySave
             ["JobCreated"] = "Tâche créée et sauvegardée avec succès !",
             ["JobLimitReached"] = "Erreur : Limite de 5 tâches atteinte.",
             ["ExecuteHeader"] = "--- Exécuter une tâche de sauvegarde ---",
-            ["DeleteHeader"] = "--- Supprimer une tâche de sauvegarde ---", // NOUVEAU
+            ["DeleteHeader"] = "--- Supprimer une tâche de sauvegarde ---",
             ["EnterJobNumber"] = "Entrez le numéro de la tâche (1-5) : ",
             ["JobNotFound"] = "Tâche non trouvée.",
-            ["JobDeleted"] = "Tâche supprimée avec succès.", // NOUVEAU
+            ["JobDeleted"] = "Tâche supprimée avec succès.",
             ["BackupFinished"] = "Sauvegarde terminée !",
             ["PressEnterReturn"] = "Appuyez sur Entrée pour revenir au menu..."
         };
@@ -83,6 +85,13 @@ namespace EasySave
 
         static void Main(string[] args)
         {
+            // Ligne de commande (ta feature)
+            if (args.Length > 0)
+            {
+                ExecuteFromCommandeLine(args[0]);
+                return;
+            }
+
             SelectLanguage();
             Console.Title = L("Title");
 
@@ -97,7 +106,8 @@ namespace EasySave
                 Console.WriteLine(L("ListJobs"));
                 Console.WriteLine(L("CreateJob"));
                 Console.WriteLine(L("ExecuteJob"));
-                Console.WriteLine(L("DeleteJob")); // NOUVEAU
+                Console.WriteLine(L("ExecuteAllJobs"));
+                Console.WriteLine(L("DeleteJob"));
                 Console.WriteLine(L("Exit"));
                 Console.WriteLine(L("Separator"));
                 Console.Write(L("YourChoice"));
@@ -109,14 +119,13 @@ namespace EasySave
                     case "1": ListJobs(); break;
                     case "2": CreateJob(); break;
                     case "3": ExecuteJob(); break;
-                    case "4": DeleteJob(); break; // NOUVEAU
-                    case "5": keepRunning = false; Console.WriteLine(L("Goodbye")); break;
+                    case "4": ExecuteAllJobs(); break;
+                    case "5": DeleteJob(); break;
+                    case "6": keepRunning = false; Console.WriteLine(L("Goodbye")); break;
                     default: DisplayMessage(L("InvalidOption"), ConsoleColor.Red); break;
                 }
             }
         }
-
-        // --- MÉTHODES ---
 
         static void ListJobs()
         {
@@ -162,7 +171,7 @@ namespace EasySave
             BackupType type = (typeSelection == "2") ? BackupType.Differential : BackupType.Full;
 
             BackupJob newJob = new BackupJob(name, source, target, type);
-            bool added = _backupService.AddJob(newJob); // Sauvegarde automatique
+            bool added = _backupService.AddJob(newJob);
 
             if (added) DisplayMessage(L("JobCreated"), ConsoleColor.Green);
             else DisplayMessage(L("JobLimitReached"), ConsoleColor.Red);
@@ -202,6 +211,27 @@ namespace EasySave
             }
         }
 
+        static void ExecuteAllJobs()
+        {
+            Console.Clear();
+            ShowHeader();
+
+            if (_backupService.Jobs.Count == 0)
+            {
+                Console.WriteLine(L("NoJobs"));
+                WaitUser();
+                return;
+            }
+
+            foreach (var job in _backupService.Jobs)
+            {
+                Console.WriteLine($"Executing: {job.Name}");
+                _backupService.ExecuteJob(job);
+            }
+
+            DisplayMessage(L("BackupFinished"), ConsoleColor.Green);
+        }
+
         static void DeleteJob()
         {
             Console.Clear();
@@ -235,8 +265,6 @@ namespace EasySave
                 DisplayMessage(L("InvalidOption"), ConsoleColor.Red);
             }
         }
-
-        // --- OUTILS ---
 
         static void SelectLanguage()
         {
@@ -283,6 +311,27 @@ namespace EasySave
             Console.WriteLine();
             Console.WriteLine(L("PressEnterReturn"));
             Console.ReadLine();
+        }
+
+        static void ExecuteFromCommandeLine(string argument)
+        {
+            CommandLineService cmdService = new CommandLineService();
+            List<int> jobIndices = cmdService.ParseArgument(argument);
+
+            foreach (int index in jobIndices)
+            {
+                if (index >= 1 && index <= _backupService.Jobs.Count)
+                {
+                    BackupJob job = _backupService.Jobs[index - 1];
+                    Console.WriteLine($"Executing job {index}: {job.Name}");
+                    _backupService.ExecuteJob(job);
+                    Console.WriteLine($"Job {index} completed.");
+                }
+                else
+                {
+                    Console.WriteLine($"Job {index} not found.");
+                }
+            }
         }
     }
 }

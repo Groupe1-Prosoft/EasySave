@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Éléments de solution/">
+    <File Path="Diagrams/UML.md" />
     <File Path="README.md" />
   </Folder>
   <Project Path="EasyLog/EasyLog.csproj" />

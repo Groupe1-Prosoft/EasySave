@@ -1,10 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using EasyLog; // INDISPENSABLE : Importe ta DLL (Model + Service)
 
 namespace EasySave
 {
     class Program
     {
+        // --- PRINCIPE SOLID (DIP) ---
+        // On dépend de l'Abstraction (Interface), pas de la Concrétion (Classe).
+        // C'est ça qui rend ton code "Pro" et modulaire.
+        private static readonly ILogger _logger = new Logger();
+
+        // --- GESTION DES LANGUES (VUE) ---
         enum Language { English, French }
         static Language _lang = Language.English;
 
@@ -31,9 +38,11 @@ namespace EasySave
             ["SelectType"] = "Select Type (1. Full / 2. Differential): ",
             ["JobCreated"] = "Job created successfully !",
             ["ExecuteHeader"] = "--- Execute a Backup Job ---",
-            ["EnterJobNumber"] = "Enter job number: ",
-            ["ExecutionInProgress"] = "Execution in progress...",
-            ["BackupFinished"] = "Backup finished!",
+            ["EnterJobNumber"] = "Enter job number to execute: ",
+            ["ExecutionInProgress"] = "Execution in progress (Simulated)...",
+            ["BackupFinished"] = "Backup finished successfully!",
+            ["LogSuccess"] = "Log file updated: ",
+            ["LogError"] = "Error writing log file.",
             ["PressEnterReturn"] = "Press Enter to return to menu..."
         };
 
@@ -60,9 +69,11 @@ namespace EasySave
             ["SelectType"] = "Sélectionnez le type (1. Complète / 2. Différentielle) : ",
             ["JobCreated"] = "Tâche créée avec succès !",
             ["ExecuteHeader"] = "--- Exécuter une tâche de sauvegarde ---",
-            ["EnterJobNumber"] = "Entrez le numéro de la tâche : ",
-            ["ExecutionInProgress"] = "Exécution en cours...",
-            ["BackupFinished"] = "Sauvegarde terminée ! ",
+            ["EnterJobNumber"] = "Entrez le numéro de la tâche à exécuter : ",
+            ["ExecutionInProgress"] = "Exécution en cours (Simulation)...",
+            ["BackupFinished"] = "Sauvegarde terminée avec succès !",
+            ["LogSuccess"] = "Fichier de log mis à jour : ",
+            ["LogError"] = "Erreur lors de l'écriture du log.",
             ["PressEnterReturn"] = "Appuyez sur Entrée pour revenir au menu..."
         };
 
@@ -71,7 +82,6 @@ namespace EasySave
         static void Main(string[] args)
         {
             SelectLanguage();
-
             Console.Title = L("Title");
 
             bool keepRunning = true;
@@ -100,7 +110,7 @@ namespace EasySave
                         CreateJob();
                         break;
                     case "3":
-                        ExecuteJob();
+                        ExecuteJob(); // C'est ici que la magie opère !
                         break;
                     case "4":
                         keepRunning = false;
@@ -122,61 +132,28 @@ namespace EasySave
             Console.Write("> ");
             string choice = Console.ReadLine();
 
-            if (choice == "2")
-            {
-                _lang = Language.French;
-            }
-            else if (choice == "1")
-            {
-                _lang = Language.English;
-            }
+            if (choice == "2") _lang = Language.French;
+            else if (choice == "1") _lang = Language.English;
             else
             {
                 Console.WriteLine(_en["InvalidLanguage"]);
                 _lang = Language.English;
             }
-
             System.Threading.Thread.Sleep(400);
         }
 
         static void ShowHeader()
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
-
-            Console.WriteLine("  ______                   ____                 ");
-            Console.WriteLine(" |  ____|                 / ___|  __ ___   ___  ");
-            Console.WriteLine(" | |__   __ _ ___ _   _   \\___ \\ / _` \\ \\ / / _ \\");
-            Console.WriteLine(" |  __| / _` / __| | | |   ___) | (_| |\\ V /  __/");
-            Console.WriteLine(" | |___| (_| \\__ \\ |_| |  |____/ \\__,_| \\_/ \\___|");
-            Console.WriteLine(" |______|\\__,_|___/\\__, |                        ");
-            Console.WriteLine("                   |___/                         ");
-
+            Console.WriteLine("  ______                    ____                  ");
+            Console.WriteLine(" |  ____|                  / ___|   __ ___    ___  ");
+            Console.WriteLine(" | |__   __ _ ___ _   _    \\___ \\ / _` \\ \\ / / _ \\");
+            Console.WriteLine(" |  __| / _` / __| | | |    ___) | (_| |\\ V /  __/");
+            Console.WriteLine(" | |___| (_| \\__ \\ |_| |   |____/ \\__,_| \\_/ \\___|");
+            Console.WriteLine(" |______|\\__,_|___/\\__, |                          ");
+            Console.WriteLine("                       |___/                           ");
             Console.WriteLine("---------------------------------------");
             Console.ResetColor();
-
-            string version = "V1.0 (Console)";
-            try
-            {
-                int lastArtLineIndex = Console.CursorTop - 2;
-                int leftPos = Math.Max(0, Console.WindowWidth - version.Length - 1);
-
-                if (lastArtLineIndex >= 0 && leftPos >= 0)
-                {
-                    Console.SetCursorPosition(leftPos, lastArtLineIndex);
-                    Console.Write(version);
-                    Console.SetCursorPosition(0, Console.CursorTop + 1);
-                }
-                else
-                {
-                    Console.WriteLine(version);
-                }
-            }
-            catch
-            {
-                Console.WriteLine(version);
-            }
-
-            Console.WriteLine();
         }
 
         static void ListJobs()
@@ -184,7 +161,7 @@ namespace EasySave
             Console.Clear();
             ShowHeader();
             Console.WriteLine(L("ListHeader"));
-            Console.WriteLine(L("NoJobs"));
+            Console.WriteLine(L("NoJobs")); // Pour l'instant on n'a pas la liste réelle
             WaitUser();
         }
 
@@ -195,7 +172,7 @@ namespace EasySave
             Console.WriteLine(L("CreateHeader"));
 
             Console.Write(L("EnterJobName"));
-            Console.ReadLine();
+            string name = Console.ReadLine(); // On capture mais on ne stocke pas encore
 
             Console.Write(L("EnterSourcePath"));
             Console.ReadLine();
@@ -209,24 +186,60 @@ namespace EasySave
             DisplayMessage(L("JobCreated"), ConsoleColor.Green);
         }
 
+        // --- C'EST ICI QUE TU UTILISES TA DLL (MVVM : Le ViewModel appelle le Modèle) ---
         static void ExecuteJob()
         {
             Console.Clear();
             ShowHeader();
             Console.WriteLine(L("ExecuteHeader"));
+
             Console.Write(L("EnterJobNumber"));
-            Console.ReadLine();
+            string jobId = Console.ReadLine(); // Simulation du choix
 
             Console.WriteLine(L("ExecutionInProgress"));
 
-            DisplayMessage(L("BackupFinished"), ConsoleColor.Green);
+            // Simulation d'un travail (barre de progression fictive)
+            System.Threading.Thread.Sleep(1000);
+
+            // 1. CRÉATION DU MODÈLE (LogData)
+            // On simule des données comme si le travail venait de se faire
+            var logData = new LogData
+            {
+                Name = $"Job_Numero_{jobId}",
+                Source = @"C:\Utilisateurs\Documents",
+                Target = @"D:\Sauvegardes\Documents",
+                Size = 125000,          // 125 Ko
+                TransferTime = 540,     // 540 ms
+                Timestamp = DateTime.Now
+            };
+
+            // 2. APPEL DU SERVICE VIA L'INTERFACE (Logger)
+            bool success = _logger.WriteLog(logData);
+
+            if (success)
+            {
+                Console.WriteLine(L("BackupFinished"));
+                // Petite astuce pour afficher le chemin du fichier (on triche un peu en castant pour l'affichage)
+                if (_logger is Logger concreteLogger)
+                {
+                    Console.WriteLine($"{L("LogSuccess")} {concreteLogger.CreateDailyLogFile()}");
+                }
+                DisplayMessage("", ConsoleColor.Green);
+            }
+            else
+            {
+                DisplayMessage(L("LogError"), ConsoleColor.Red);
+            }
         }
 
         static void DisplayMessage(string message, ConsoleColor color)
         {
-            Console.ForegroundColor = color;
-            Console.WriteLine(message);
-            Console.ResetColor();
+            if (!string.IsNullOrEmpty(message))
+            {
+                Console.ForegroundColor = color;
+                Console.WriteLine(message);
+                Console.ResetColor();
+            }
             WaitUser();
         }
 

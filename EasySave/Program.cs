@@ -85,7 +85,7 @@ namespace EasySave
 
         static void Main(string[] args)
         {
-            // Ligne de commande (ta feature)
+            // Ligne de commande 
             if (args.Length > 0)
             {
                 ExecuteFromCommandeLine(args[0]);

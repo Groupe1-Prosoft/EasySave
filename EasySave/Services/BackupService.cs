@@ -209,6 +209,9 @@ namespace EasySave.Services
             foreach (DirectoryInfo subDir in dir.GetDirectories())
             {
                 string newTargetDir = Path.Combine(targetDir, subDir.Name);
+
+                //create an under folder if it doesn't exist before copying files into it
+                if (!Directory.Exists(newTargetDir)) Directory.CreateDirectory(newTargetDir);
                 CopyDirectory(subDir.FullName, newTargetDir, job, state);
             }
         }

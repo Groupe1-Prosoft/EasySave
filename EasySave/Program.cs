@@ -10,8 +10,9 @@ namespace EasySave
 {
     class Program
     {
-        private static BackupService _backupService = new BackupService();
+
         private static LanguageManager _languageManager = new LanguageManager();
+        private static BackupService _backupService = new BackupService(_languageManager);
 
         static void Main(string[] args)
         {
@@ -182,7 +183,7 @@ namespace EasySave
 
             foreach (var job in _backupService.Jobs)
             {
-                Console.WriteLine($"Executing: {job.Name}");
+                Console.WriteLine(_languageManager.GetText("ExecutingJob", job.Name));
                 _backupService.ExecuteJob(job);
             }
 
@@ -280,13 +281,13 @@ namespace EasySave
                 if (index >= 1 && index <= _backupService.Jobs.Count)
                 {
                     BackupJob job = _backupService.Jobs[index - 1];
-                    Console.WriteLine($"Executing job {index}: {job.Name}");
+                    Console.WriteLine(_languageManager.GetText("ExecutingJob", job.Name));
                     _backupService.ExecuteJob(job);
-                    Console.WriteLine($"Job {index} completed.");
+                    Console.WriteLine(_languageManager.GetText("JobExecuted", index));
                 }
                 else
                 {
-                    Console.WriteLine($"Job {index} not found.");
+                    Console.WriteLine(_languageManager.GetText("JobNotFound"));
                 }
             }
         }

@@ -51,7 +51,11 @@ namespace EasySave.Localization
             ["ExecutingJob"] = "Executing: {0}",
             ["JobExecuted"] = "Job {0} completed.",
             ["ValidationError"] = "Validation error: {0}",
-            ["SourceNotFound"] = "Source directory not found: {0}"
+            ["SourceNotFound"] = "Source directory not found: {0}",
+            ["Processing"] = "Processing: {0} ({1} files)...",
+            ["FileCopied"] = " -> {0} copied.",
+            ["CopyError"] = "Copy error: {0}",
+
         };
 
         // French translations - same keys as English.
@@ -91,7 +95,10 @@ namespace EasySave.Localization
             ["ExecutingJob"] = "Exécution : {0}",
             ["JobExecuted"] = "Tâche {0} terminée.",
             ["ValidationError"] = "Erreur de validation : {0}",
-            ["SourceNotFound"] = "Répertoire source introuvable : {0}"
+            ["SourceNotFound"] = "Répertoire source introuvable : {0}",
+            ["Processing"] = "Traitement de : {0} ({1} fichiers)...",
+            ["FileCopied"] = " -> {0} copié.",
+            ["CopyError"] = "Erreur copie : {0}",
         };
 
         // Expose current language code (read-only).

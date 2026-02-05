@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Linq; // Nécessaire pour les listes
 using EasySave.Models;
 using EasyLog;
+using EasySave.Localization;
 
 namespace EasySave.Services
 {
@@ -16,8 +17,12 @@ namespace EasySave.Services
         private readonly string _jobsFilePath;
         private readonly string _stateFilePath; // Nouveau fichier state.json
 
-        public BackupService()
+        private readonly LanguageManager _lang;
+
+        public BackupService(LanguageManager lang)
         {
+
+            _lang = lang;
             string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave");
             if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
 
@@ -80,7 +85,7 @@ namespace EasySave.Services
             if (!Directory.Exists(job.SourceDirectory))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[ERREUR] Source introuvable : {job.SourceDirectory}");
+                Console.WriteLine(_lang.GetText("SourceNotFound", job.SourceDirectory));
                 Console.ResetColor();
                 return;
             }
@@ -102,7 +107,7 @@ namespace EasySave.Services
             // Premier enregistrement de l'état (Début)
             UpdateStateFile(state);
 
-            Console.WriteLine($"Traitement de : {job.Name} ({state.TotalFiles} fichiers)...");
+            Console.WriteLine(_lang.GetText("Processing", job.Name, state.TotalFiles));
 
             // 3. Lancement de la copie
             CopyDirectory(job.SourceDirectory, job.TargetDirectory, job, state);
@@ -205,7 +210,7 @@ namespace EasySave.Services
                         Timestamp = DateTime.Now
                     };
                     _logger.WriteLog(logData);
-                    Console.WriteLine($" -> {file.Name} copié.");
+                    Console.WriteLine(_lang.GetText("FileCopied", file.Name));
                 }
                 catch (Exception ex)
                 {
@@ -221,7 +226,8 @@ namespace EasySave.Services
                         Timestamp = DateTime.Now
                     };
                     _logger.WriteLog(logData);
-                    Console.WriteLine($"Erreur copie : {ex.Message}");
+                    Console.WriteLine(_lang.GetText("CopyError", ex.Message)
+);
                 }
 
                 state.FilesRemaining--;
@@ -234,7 +240,6 @@ namespace EasySave.Services
 
                 state.Timestamp = DateTime.Now; // Update timestamp for each file processed
                 UpdateStateFile(state);
-                if (state.SizeRemaining < 0) state.SizeRemaining = 0;
                 // On évite les négatifs par sécurité
                 if (state.SizeRemaining < 0) state.SizeRemaining = 0;
 

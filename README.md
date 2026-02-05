@@ -45,3 +45,19 @@ To ensure code quality and avoid conflicts, we strictly follow these rules:
 2.  Open the `.sln` file in Visual Studio.
 3.  Ensure the startup project is set to **EasySave**.
 4.  Build and Start (F5).
+5. If you're running on vs code or anything else type this command to run it on the terminal : dotnet run --project EasySave
+6. To run the job in the command line way paste this commad on command line : 
+
+dotnet build
+
+Execute first job :
+dotnet run -- 1
+
+Execute jobs 1 to 3 :
+dotnet run -- 1-3
+
+ Execute jobs 1 and 3 :
+ dotnet run -- "1;3"
+ 
+ ## Logs
+ For the logs and the state.json, it'll be generate on your computer especially on this path : C/User/username/AppData/Roaming/EasySave

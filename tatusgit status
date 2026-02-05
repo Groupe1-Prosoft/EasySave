@@ -1,0 +1,54 @@
+[1mdiff --git a/EasySave/Program.cs b/EasySave/Program.cs[m
+[1mindex 9855634..dd147b7 100644[m
+[1m--- a/EasySave/Program.cs[m
+[1m+++ b/EasySave/Program.cs[m
+[36m@@ -4,6 +4,7 @@[m [musing EasySave.Models;[m
+ using EasySave.Services;[m
+ using EasyLog;[m
+ using EasySave.Localization;[m
+[32m+[m[32musing System.IO;[m
+ [m
+ namespace EasySave[m
+ {[m
+[36m@@ -89,14 +90,41 @@[m [mnamespace EasySave[m
+                 return;[m
+             }[m
+ [m
+[32m+[m[32m            // Name[m
+             Console.Write(_languageManager.GetText("EnterJobName"));[m
+             string name = Console.ReadLine();[m
+[32m+[m[32m            if (string.IsNullOrWhiteSpace(name))[m
+[32m+[m[32m            {[m
+[32m+[m[32m                DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red);[m
+[32m+[m[32m                return;[m
+[32m+[m[32m            }[m
+[32m+[m
+[32m+[m[32m            // source path[m
+             Console.Write(_languageManager.GetText("EnterSourcePath"));[m
+             string source = Console.ReadLine();[m
+[32m+[m[32m            if (string.IsNullOrWhiteSpace(source) || !Directory.Exists(source))[m
+[32m+[m[32m            {[m
+[32m+[m[32m                DisplayMessage(_languageManager.GetText("JobNotFound"), ConsoleColor.Red);[m
+[32m+[m[32m                return;[m
+[32m+[m[32m            }[m
+[32m+[m
+[32m+[m[32m            // target path[m
+             Console.Write(_languageManager.GetText("EnterTargetPath"));[m
+             string target = Console.ReadLine();[m
+[32m+[m[32m            if (string.IsNullOrWhiteSpace(target))[m
+[32m+[m[32m            {[m
+[32m+[m[32m                DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red);[m
+[32m+[m[32m                return;[m
+[32m+[m[32m            }[m
+[32m+[m
+[32m+[m[32m            // type[m
+             Console.Write(_languageManager.GetText("SelectType"));[m
+             string typeSelection = Console.ReadLine();[m
+[32m+[m[32m            if (typeSelection != "1" && typeSelection != "2")[m
+[32m+[m[32m            {[m
+[32m+[m[32m                DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red);[m
+[32m+[m[32m                return;[m
+[32m+[m[32m            }[m
+             BackupType type = (typeSelection == "2") ? BackupType.Differential : BackupType.Full;[m
+ [m
+             BackupJob newJob = new BackupJob(name, source, target, type);[m

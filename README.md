@@ -50,13 +50,13 @@ To ensure code quality and avoid conflicts, we strictly follow these rules:
 
 dotnet build
 
-Execute first job
+Execute first job :
 dotnet run -- 1
 
-Execute jobs 1 to 3
+Execute jobs 1 to 3 :
 dotnet run -- 1-3
 
- Execute jobs 1 and 3
+ Execute jobs 1 and 3 :
  dotnet run -- "1;3"
  
  ## Logs

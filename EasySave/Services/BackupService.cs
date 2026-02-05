@@ -159,6 +159,11 @@ namespace EasySave.Services
                         state.SizeRemaining -= file.Length;
                         if (state.SizeRemaining < 0) state.SizeRemaining = 0;
 
+                        //Update progression before skipping the file
+                        state.Progression = state.TotalFiles > 0
+                            ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
+                            : 0;
+
                         // On sauvegarde l'état pour que la barre de progression avance
                         UpdateStateFile(state);
 
@@ -212,6 +217,12 @@ namespace EasySave.Services
 
                 state.FilesRemaining--;
                 state.SizeRemaining -= file.Length;
+
+                //Update progression after copying the file
+                state.Progression = state.TotalFiles > 0
+    ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
+    : 0;
+                UpdateStateFile(state);
                 if (state.SizeRemaining < 0) state.SizeRemaining = 0;
                 // On évite les négatifs par sécurité
                 if (state.SizeRemaining < 0) state.SizeRemaining = 0;

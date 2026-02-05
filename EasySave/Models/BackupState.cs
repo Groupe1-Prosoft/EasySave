@@ -8,13 +8,15 @@ namespace EasySave.Models
         public DateTime Timestamp { get; set; }
         public string? State { get; set; }
 
-        public string? SourceDirectory { get; set; } 
-        public string? TargetDirectory { get; set; } 
+        public string? SourceDirectory { get; set; }
+        public string? TargetDirectory { get; set; }
 
         public int TotalFiles { get; set; }
         public long TotalSize { get; set; }
         public int FilesRemaining { get; set; }
         public long SizeRemaining { get; set; }
+
+        public double Progression { get; set; }
 
         public string? CurrentSourceFile { get; set; }
         public string? CurrentTargetFile { get; set; }

@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using EasySave.Localization;
 using EasySave.Models;
+
 
 namespace EasySave.Views
 {
@@ -52,12 +53,14 @@ namespace EasySave.Views
             return Console.ReadLine() ?? string.Empty;
         }
 
+
+
         public void ShowLanguageSelection()
         {
             Console.Clear();
             Console.WriteLine("EasySave 1.0");
             Console.WriteLine();
-            Console.WriteLine("Select language: 1. English  2. Fran�ais");
+            Console.WriteLine("Select language: 1. English  2. Français");
             Console.Write("> ");
         }
 
@@ -132,6 +135,23 @@ namespace EasySave.Views
         public void ShowTextWithParam(string key, params object[] args)
         {
             Console.WriteLine(_languageManager.GetText(key, args));
+        }
+
+        public void ShowProgress(BackupState state)
+        {
+            if (state == null) return;
+
+            int progress = 0;
+            if (state.TotalFiles > 0)
+            {
+                progress = (int)(((double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles) * 100);
+            }
+
+            int barWidth = 20;
+            int filled = (progress * barWidth) / 100;
+            string bar = new string('█', filled) + new string('░', barWidth - filled);
+
+            Console.Write($"\r[{bar}] {progress}% - {state.FilesRemaining} files remaining");
         }
 
         public string PromptInput(string key)

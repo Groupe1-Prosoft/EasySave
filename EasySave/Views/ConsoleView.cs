@@ -32,7 +32,7 @@ namespace EasySave.Views
             Console.WriteLine(@"|   |    \ /  /  ,.  |  /  /`--'  / \  ;   :         '--'.     / /  /  ,.  | \   \  '   |  / | ");
             Console.WriteLine(@"|   :   .';  :   .'   \'--'.     /   \  \  ;           `--'---' ;  :   .'   \ \   \ |   :    | ");
             Console.WriteLine(@"|   | ,'  |  ,     .-./  `--'---'     :  \  \                   |  ,     .-./  '---"" \   \  /  ");
-            Console.WriteLine(@"`----'     `--`---'                    \  ' ;                    `--`---'             `----'   ");
+            Console.WriteLine(@"`---.'     `--`---'                    \  ' ;                    `--`---'             `----'   ");
             Console.WriteLine(@"                                        `--`                                                    ");
             Console.WriteLine("---------------------------------------");
             Console.ResetColor();

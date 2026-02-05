@@ -174,36 +174,51 @@ namespace EasySave.Services
                 state.State = "ACTIF"; // On confirme qu'on est actif
                 UpdateStateFile(state); // Écriture JSON en temps réel
 
+
+                //log write in the two cases (success or error) with time taken for the operation, and negative time if error
                 try
                 {
-                    // TODO: Différentielle ici plus tard
                     file.CopyTo(targetFilePath, true);
+                    long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
+
+                    var logData = new LogData
+                    {
+                        Name = job.Name,
+                        Source = file.FullName,
+                        Target = targetFilePath,
+                        Size = file.Length,
+                        TransferTime = timeMs,
+                        Timestamp = DateTime.Now
+                    };
+                    _logger.WriteLog(logData);
+                    Console.WriteLine($" -> {file.Name} copié.");
                 }
                 catch (Exception ex)
                 {
+                    long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
+
+                    var logData = new LogData
+                    {
+                        Name = job.Name,
+                        Source = file.FullName,
+                        Target = targetFilePath,
+                        Size = file.Length,
+                        TransferTime = -timeMs,
+                        Timestamp = DateTime.Now
+                    };
+                    _logger.WriteLog(logData);
                     Console.WriteLine($"Erreur copie : {ex.Message}");
                 }
 
-                // --- MISE A JOUR ETAT (Après copie) ---
                 state.FilesRemaining--;
                 state.SizeRemaining -= file.Length;
+                if (state.SizeRemaining < 0) state.SizeRemaining = 0;
                 // On évite les négatifs par sécurité
                 if (state.SizeRemaining < 0) state.SizeRemaining = 0;
 
-                long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
 
-                var logData = new LogData
-                {
-                    Name = job.Name,
-                    Source = file.FullName,
-                    Target = targetFilePath,
-                    Size = file.Length,
-                    TransferTime = timeMs,
-                    Timestamp = DateTime.Now
-                };
 
-                _logger.WriteLog(logData);
-                Console.WriteLine($" -> {file.Name} copié.");
+
             }
 
             foreach (DirectoryInfo subDir in dir.GetDirectories())

@@ -4,6 +4,7 @@ using EasySave.Models;
 using EasySave.Services;
 using EasyLog;
 using EasySave.Localization;
+using System.IO;
 
 namespace EasySave
 {
@@ -89,14 +90,41 @@ namespace EasySave
                 return;
             }
 
+            // Name
             Console.Write(_languageManager.GetText("EnterJobName"));
             string name = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red);
+                return;
+            }
+
+            // source path
             Console.Write(_languageManager.GetText("EnterSourcePath"));
             string source = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(source) || !Directory.Exists(source))
+            {
+                DisplayMessage(_languageManager.GetText("JobNotFound"), ConsoleColor.Red);
+                return;
+            }
+
+            // target path
             Console.Write(_languageManager.GetText("EnterTargetPath"));
             string target = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(target))
+            {
+                DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red);
+                return;
+            }
+
+            // type
             Console.Write(_languageManager.GetText("SelectType"));
             string typeSelection = Console.ReadLine();
+            if (typeSelection != "1" && typeSelection != "2")
+            {
+                DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red);
+                return;
+            }
             BackupType type = (typeSelection == "2") ? BackupType.Differential : BackupType.Full;
 
             BackupJob newJob = new BackupJob(name, source, target, type);

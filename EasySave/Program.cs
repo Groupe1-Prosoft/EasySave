@@ -3,85 +3,14 @@ using System.Collections.Generic;
 using EasySave.Models;
 using EasySave.Services;
 using EasyLog;
+using EasySave.Localization;
 
 namespace EasySave
 {
     class Program
     {
         private static BackupService _backupService = new BackupService();
-
-        enum Language { English, French }
-        static Language _lang = Language.English;
-
-        static readonly Dictionary<string, string> _en = new()
-        {
-            ["Title"] = "EasySave 1.0",
-            ["SelectLanguage"] = "Select language: 1. English  2. Français",
-            ["InvalidLanguage"] = "Invalid selection. Defaulting to English.",
-            ["SelectOption"] = "Select an option:",
-            ["ListJobs"] = "1. List backup jobs",
-            ["CreateJob"] = "2. Create a backup job",
-            ["ExecuteJob"] = "3. Execute a backup job",
-            ["ExecuteAllJobs"] = "4. Execute all backup jobs",
-            ["DeleteJob"] = "5. Delete a backup job",
-            ["Exit"] = "6. Exit",
-            ["Separator"] = "-----------------------------------",
-            ["YourChoice"] = "Your choice: ",
-            ["InvalidOption"] = "Invalid option. Please try again.",
-            ["Goodbye"] = "Goodbye!",
-            ["ListHeader"] = "--- List of Backup Jobs ---",
-            ["NoJobs"] = "No jobs configured yet.",
-            ["CreateHeader"] = "--- Create a New Backup Job ---",
-            ["EnterJobName"] = "Enter Job Name: ",
-            ["EnterSourcePath"] = "Enter Source Path: ",
-            ["EnterTargetPath"] = "Enter Target Path: ",
-            ["SelectType"] = "Select Type (1. Full / 2. Differential): ",
-            ["JobCreated"] = "Job created & saved successfully!",
-            ["JobLimitReached"] = "Error: Limit of 5 jobs reached.",
-            ["ExecuteHeader"] = "--- Execute a Backup Job ---",
-            ["DeleteHeader"] = "--- Delete a Backup Job ---",
-            ["EnterJobNumber"] = "Enter job number (1-5): ",
-            ["JobNotFound"] = "Job not found.",
-            ["JobDeleted"] = "Job deleted successfully.",
-            ["BackupFinished"] = "Backup finished!",
-            ["PressEnterReturn"] = "Press Enter to return to menu..."
-        };
-
-        static readonly Dictionary<string, string> _fr = new()
-        {
-            ["Title"] = "EasySave 1.0",
-            ["SelectLanguage"] = "Choisissez la langue : 1. Anglais  2. Français",
-            ["InvalidLanguage"] = "Sélection invalide. Anglais choisi par défaut.",
-            ["SelectOption"] = "Sélectionnez une option :",
-            ["ListJobs"] = "1. Lister les tâches de sauvegarde",
-            ["CreateJob"] = "2. Créer une tâche de sauvegarde",
-            ["ExecuteJob"] = "3. Exécuter une tâche de sauvegarde",
-            ["ExecuteAllJobs"] = "4. Exécuter toutes les tâches de sauvegarde",
-            ["DeleteJob"] = "5. Supprimer une tâche de sauvegarde",
-            ["Exit"] = "6. Quitter",
-            ["Separator"] = "-----------------------------------",
-            ["YourChoice"] = "Votre choix : ",
-            ["InvalidOption"] = "Option invalide. Veuillez réessayer.",
-            ["Goodbye"] = "Au revoir !",
-            ["ListHeader"] = "--- Liste des tâches de sauvegarde ---",
-            ["NoJobs"] = "Aucune tâche configurée pour l'instant.",
-            ["CreateHeader"] = "--- Créer une nouvelle tâche de sauvegarde ---",
-            ["EnterJobName"] = "Entrez le nom de la tâche : ",
-            ["EnterSourcePath"] = "Entrez le chemin source : ",
-            ["EnterTargetPath"] = "Entrez le chemin cible : ",
-            ["SelectType"] = "Sélectionnez le type (1. Complète / 2. Différentielle) : ",
-            ["JobCreated"] = "Tâche créée et sauvegardée avec succès !",
-            ["JobLimitReached"] = "Erreur : Limite de 5 tâches atteinte.",
-            ["ExecuteHeader"] = "--- Exécuter une tâche de sauvegarde ---",
-            ["DeleteHeader"] = "--- Supprimer une tâche de sauvegarde ---",
-            ["EnterJobNumber"] = "Entrez le numéro de la tâche (1-5) : ",
-            ["JobNotFound"] = "Tâche non trouvée.",
-            ["JobDeleted"] = "Tâche supprimée avec succès.",
-            ["BackupFinished"] = "Sauvegarde terminée !",
-            ["PressEnterReturn"] = "Appuyez sur Entrée pour revenir au menu..."
-        };
-
-        static string L(string key) => _lang == Language.English ? _en[key] : _fr[key];
+        private static LanguageManager _languageManager = new LanguageManager();
 
         static void Main(string[] args)
         {
@@ -93,7 +22,7 @@ namespace EasySave
             }
 
             SelectLanguage();
-            Console.Title = L("Title");
+            Console.Title = _languageManager.GetText("Title");
 
             bool keepRunning = true;
 
@@ -102,15 +31,15 @@ namespace EasySave
                 Console.Clear();
                 ShowHeader();
 
-                Console.WriteLine(L("SelectOption"));
-                Console.WriteLine(L("ListJobs"));
-                Console.WriteLine(L("CreateJob"));
-                Console.WriteLine(L("ExecuteJob"));
-                Console.WriteLine(L("ExecuteAllJobs"));
-                Console.WriteLine(L("DeleteJob"));
-                Console.WriteLine(L("Exit"));
-                Console.WriteLine(L("Separator"));
-                Console.Write(L("YourChoice"));
+                Console.WriteLine(_languageManager.GetText("SelectOption"));
+                Console.WriteLine(_languageManager.GetText("ListJobs"));
+                Console.WriteLine(_languageManager.GetText("CreateJob"));
+                Console.WriteLine(_languageManager.GetText("ExecuteJob"));
+                Console.WriteLine(_languageManager.GetText("ExecuteAllJobs"));
+                Console.WriteLine(_languageManager.GetText("DeleteJob"));
+                Console.WriteLine(_languageManager.GetText("Exit"));
+                Console.WriteLine(_languageManager.GetText("Separator"));
+                Console.Write(_languageManager.GetText("YourChoice"));
 
                 string userChoice = Console.ReadLine();
 
@@ -121,8 +50,8 @@ namespace EasySave
                     case "3": ExecuteJob(); break;
                     case "4": ExecuteAllJobs(); break;
                     case "5": DeleteJob(); break;
-                    case "6": keepRunning = false; Console.WriteLine(L("Goodbye")); break;
-                    default: DisplayMessage(L("InvalidOption"), ConsoleColor.Red); break;
+                    case "6": keepRunning = false; Console.WriteLine(_languageManager.GetText("Goodbye")); break;
+                    default: DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red); break;
                 }
             }
         }
@@ -131,11 +60,11 @@ namespace EasySave
         {
             Console.Clear();
             ShowHeader();
-            Console.WriteLine(L("ListHeader"));
+            Console.WriteLine(_languageManager.GetText("ListHeader"));
 
             if (_backupService.Jobs.Count == 0)
             {
-                Console.WriteLine(L("NoJobs"));
+                Console.WriteLine(_languageManager.GetText("NoJobs"));
             }
             else
             {
@@ -152,40 +81,40 @@ namespace EasySave
         {
             Console.Clear();
             ShowHeader();
-            Console.WriteLine(L("CreateHeader"));
+            Console.WriteLine(_languageManager.GetText("CreateHeader"));
 
             if (_backupService.Jobs.Count >= 5)
             {
-                DisplayMessage(L("JobLimitReached"), ConsoleColor.Red);
+                DisplayMessage(_languageManager.GetText("JobLimitReached"), ConsoleColor.Red);
                 return;
             }
 
-            Console.Write(L("EnterJobName"));
+            Console.Write(_languageManager.GetText("EnterJobName"));
             string name = Console.ReadLine();
-            Console.Write(L("EnterSourcePath"));
+            Console.Write(_languageManager.GetText("EnterSourcePath"));
             string source = Console.ReadLine();
-            Console.Write(L("EnterTargetPath"));
+            Console.Write(_languageManager.GetText("EnterTargetPath"));
             string target = Console.ReadLine();
-            Console.Write(L("SelectType"));
+            Console.Write(_languageManager.GetText("SelectType"));
             string typeSelection = Console.ReadLine();
             BackupType type = (typeSelection == "2") ? BackupType.Differential : BackupType.Full;
 
             BackupJob newJob = new BackupJob(name, source, target, type);
             bool added = _backupService.AddJob(newJob);
 
-            if (added) DisplayMessage(L("JobCreated"), ConsoleColor.Green);
-            else DisplayMessage(L("JobLimitReached"), ConsoleColor.Red);
+            if (added) DisplayMessage(_languageManager.GetText("JobCreated"), ConsoleColor.Green);
+            else DisplayMessage(_languageManager.GetText("JobLimitReached"), ConsoleColor.Red);
         }
 
         static void ExecuteJob()
         {
             Console.Clear();
             ShowHeader();
-            Console.WriteLine(L("ExecuteHeader"));
+            Console.WriteLine(_languageManager.GetText("ExecuteHeader"));
 
             if (_backupService.Jobs.Count == 0)
             {
-                Console.WriteLine(L("NoJobs"));
+                Console.WriteLine(_languageManager.GetText("NoJobs"));
                 WaitUser();
                 return;
             }
@@ -196,18 +125,18 @@ namespace EasySave
             }
 
             Console.WriteLine();
-            Console.Write(L("EnterJobNumber"));
+            Console.Write(_languageManager.GetText("EnterJobNumber"));
             string input = Console.ReadLine();
 
             if (int.TryParse(input, out int jobNumber) && jobNumber >= 1 && jobNumber <= _backupService.Jobs.Count)
             {
                 BackupJob jobToRun = _backupService.Jobs[jobNumber - 1];
                 _backupService.ExecuteJob(jobToRun);
-                DisplayMessage(L("BackupFinished"), ConsoleColor.Green);
+                DisplayMessage(_languageManager.GetText("BackupFinished"), ConsoleColor.Green);
             }
             else
             {
-                DisplayMessage(L("JobNotFound"), ConsoleColor.Red);
+                DisplayMessage(_languageManager.GetText("JobNotFound"), ConsoleColor.Red);
             }
         }
 
@@ -218,7 +147,7 @@ namespace EasySave
 
             if (_backupService.Jobs.Count == 0)
             {
-                Console.WriteLine(L("NoJobs"));
+                Console.WriteLine(_languageManager.GetText("NoJobs"));
                 WaitUser();
                 return;
             }
@@ -229,18 +158,18 @@ namespace EasySave
                 _backupService.ExecuteJob(job);
             }
 
-            DisplayMessage(L("BackupFinished"), ConsoleColor.Green);
+            DisplayMessage(_languageManager.GetText("BackupFinished"), ConsoleColor.Green);
         }
 
         static void DeleteJob()
         {
             Console.Clear();
             ShowHeader();
-            Console.WriteLine(L("DeleteHeader"));
+            Console.WriteLine(_languageManager.GetText("DeleteHeader"));
 
             if (_backupService.Jobs.Count == 0)
             {
-                Console.WriteLine(L("NoJobs"));
+                Console.WriteLine(_languageManager.GetText("NoJobs"));
                 WaitUser();
                 return;
             }
@@ -251,33 +180,33 @@ namespace EasySave
             }
 
             Console.WriteLine();
-            Console.Write(L("EnterJobNumber"));
+            Console.Write(_languageManager.GetText("EnterJobNumber"));
             string input = Console.ReadLine();
 
             if (int.TryParse(input, out int jobNumber))
             {
                 bool deleted = _backupService.DeleteJob(jobNumber);
-                if (deleted) DisplayMessage(L("JobDeleted"), ConsoleColor.Green);
-                else DisplayMessage(L("JobNotFound"), ConsoleColor.Red);
+                if (deleted) DisplayMessage(_languageManager.GetText("JobDeleted"), ConsoleColor.Green);
+                else DisplayMessage(_languageManager.GetText("JobNotFound"), ConsoleColor.Red);
             }
             else
             {
-                DisplayMessage(L("InvalidOption"), ConsoleColor.Red);
+                DisplayMessage(_languageManager.GetText("InvalidOption"), ConsoleColor.Red);
             }
         }
 
         static void SelectLanguage()
         {
             Console.Clear();
-            Console.WriteLine(_en["Title"]);
+            Console.WriteLine("EasySave 1.0");
             Console.WriteLine();
-            Console.WriteLine(_en["SelectLanguage"]);
+            Console.WriteLine("Select language: 1. English  2. Français");
             Console.Write("> ");
             string choice = Console.ReadLine();
 
-            if (choice == "2") _lang = Language.French;
-            else if (choice == "1") _lang = Language.English;
-            else { Console.WriteLine(_en["InvalidLanguage"]); _lang = Language.English; }
+            if (choice == "2") _languageManager.SetLanguage("fr");
+            else _languageManager.SetLanguage("en");
+
             System.Threading.Thread.Sleep(400);
         }
 
@@ -309,7 +238,7 @@ namespace EasySave
         static void WaitUser()
         {
             Console.WriteLine();
-            Console.WriteLine(L("PressEnterReturn"));
+            Console.WriteLine(_languageManager.GetText("PressEnterReturn"));
             Console.ReadLine();
         }
 

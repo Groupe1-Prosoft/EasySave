@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Text.Json;
-using System.Linq; // Nécessaire pour les listes
+using System.Linq;
 using EasySave.Models;
 using EasyLog;
 using EasySave.Localization;
@@ -15,27 +15,30 @@ namespace EasySave.Services
         private readonly ILogger _logger;
 
         private readonly string _jobsFilePath;
-        private readonly string _stateFilePath; // Nouveau fichier state.json
+        private readonly string _stateFilePath;
 
         private readonly LanguageManager _lang;
 
         public BackupService(LanguageManager lang)
         {
-
             _lang = lang;
             string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave");
+
+            // Create the directory if it does not exist
             if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
 
             _jobsFilePath = Path.Combine(appDataPath, "jobs.json");
-            _stateFilePath = Path.Combine(appDataPath, "state.json"); // Définition du chemin
+            _stateFilePath = Path.Combine(appDataPath, "state.json");
 
             _logger = new EasyLog.Logger();
             LoadJobs();
         }
 
-        // --- GESTION DES JOBS (CRUD) ---
+        // Methods to manage backup jobs
+
         public bool AddJob(BackupJob job)
         {
+            // Limit to 5 jobs max
             if (Jobs.Count >= 5) return false;
             Jobs.Add(job);
             SaveJobs();
@@ -61,7 +64,7 @@ namespace EasySave.Services
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 File.WriteAllText(_jobsFilePath, JsonSerializer.Serialize(Jobs, options));
             }
-            catch (Exception ex) { Console.WriteLine($"Erreur save jobs: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"Error saving jobs: {ex.Message}"); }
         }
 
         private void LoadJobs()
@@ -78,7 +81,7 @@ namespace EasySave.Services
             catch { Jobs = new List<BackupJob>(); }
         }
 
-        // --- EXÉCUTION & ÉTAT (STATE) ---
+        // Methods for execution and state management
 
         public void ExecuteJob(BackupJob job)
         {
@@ -91,33 +94,33 @@ namespace EasySave.Services
             }
             if (!Directory.Exists(job.TargetDirectory)) Directory.CreateDirectory(job.TargetDirectory);
 
-            // 1. Initialisation de l'État (State)
+            // Initialize the state of the backup
             var state = new BackupState
             {
                 JobName = job.Name,
                 Timestamp = DateTime.Now,
                 State = "ACTIF",
-                SourceDirectory = job.SourceDirectory, // Ajout pour info
-                TargetDirectory = job.TargetDirectory  // Ajout pour info
+                SourceDirectory = job.SourceDirectory,
+                TargetDirectory = job.TargetDirectory
             };
 
-            // 2. Calcul des Totaux (Fichiers et Taille)
+            // Calculate total files and size
             CalculateTotals(job.SourceDirectory, state);
 
-            // Premier enregistrement de l'état (Début)
+            // Save the initial state
             UpdateStateFile(state);
 
             Console.WriteLine(_lang.GetText("Processing", job.Name, state.TotalFiles));
 
-            // 3. Lancement de la copie
+            // Start the copy process
             CopyDirectory(job.SourceDirectory, job.TargetDirectory, job, state);
 
-            // 4. Fin du travail
+            // End of the job
             state.State = "NON ACTIF";
             state.CurrentSourceFile = "";
             state.CurrentTargetFile = "";
 
-            state.Timestamp = DateTime.Now; // Update timestamp for job completion
+            state.Timestamp = DateTime.Now;
             UpdateStateFile(state);
         }
 
@@ -126,7 +129,8 @@ namespace EasySave.Services
             try
             {
                 DirectoryInfo dir = new DirectoryInfo(path);
-                // On compte tous les fichiers récursivement
+
+                // Count all files recursively
                 var files = dir.GetFiles("*", SearchOption.AllDirectories);
 
                 state.TotalFiles = files.Length;
@@ -140,7 +144,7 @@ namespace EasySave.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur calcul taille: {ex.Message}");
+                Console.WriteLine($"Error calculating totals: {ex.Message}");
             }
         }
 
@@ -151,52 +155,48 @@ namespace EasySave.Services
             foreach (FileInfo file in dir.GetFiles())
             {
                 string targetFilePath = Path.Combine(targetDir, file.Name);
-                // Dans la méthode CopyDirectory, juste après : string targetFilePath = ...
 
-                // --- DÉBUT DU BLOC À AJOUTER ---
+                // Differential backup logic
                 if (job.Type == BackupType.Differential && File.Exists(targetFilePath))
                 {
                     FileInfo destFile = new FileInfo(targetFilePath);
 
-                    // Si le fichier source est plus vieux ou égal à la destination
+                    // If source file is older or same date as destination we skip it
                     if (file.LastWriteTime <= destFile.LastWriteTime)
                     {
-                        // On met à jour les compteurs (car le fichier est "traité" en étant ignoré)
+                        // Update counters because the file is skipped
                         state.FilesRemaining--;
                         state.SizeRemaining -= file.Length;
                         if (state.SizeRemaining < 0) state.SizeRemaining = 0;
 
-                        //Update progression before skipping the file
+                        // Update progression before skipping the file
                         state.Progression = state.TotalFiles > 0
                             ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
                             : 0;
 
-                        //Update of the state file to reflect the skipped file and progression
                         state.Timestamp = DateTime.Now;
 
-                        // On sauvegarde l'état pour que la barre de progression avance
+                        // Save state to keep the progress bar accurate
                         UpdateStateFile(state);
 
-                        continue; // ON PASSE AU FICHIER SUIVANT
+                        continue;
                     }
                 }
-                // --- FIN DU BLOC À AJOUTER ---
+
                 long startTime = DateTime.Now.Ticks;
 
-                // --- MISE A JOUR ETAT (Avant copie) ---
+                // Update state before copy
                 state.CurrentSourceFile = file.FullName;
                 state.CurrentTargetFile = targetFilePath;
-                state.State = "ACTIF"; // On confirme qu'on est actif
+                state.State = "ACTIF";
 
-                //Update of the state file to reflect the current file being copied
                 state.Timestamp = DateTime.Now;
 
-                UpdateStateFile(state); // Écriture JSON en temps réel
+                UpdateStateFile(state);
 
-
-                //log write in the two cases (success or error) with time taken for the operation, and negative time if error
                 try
                 {
+                    // Copy the file and overwrite if exists
                     file.CopyTo(targetFilePath, true);
                     long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
 
@@ -216,6 +216,7 @@ namespace EasySave.Services
                 {
                     long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
 
+                    // Log the error with negative time
                     var logData = new LogData
                     {
                         Name = job.Name,
@@ -226,47 +227,42 @@ namespace EasySave.Services
                         Timestamp = DateTime.Now
                     };
                     _logger.WriteLog(logData);
-                    Console.WriteLine(_lang.GetText("CopyError", ex.Message)
-);
+                    Console.WriteLine(_lang.GetText("CopyError", ex.Message));
                 }
 
                 state.FilesRemaining--;
                 state.SizeRemaining -= file.Length;
 
-                //Update progression after copying the file
+                // Update progression after copying the file
                 state.Progression = state.TotalFiles > 0
-    ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
-    : 0;
+                    ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
+                    : 0;
 
-                state.Timestamp = DateTime.Now; // Update timestamp for each file processed
+                state.Timestamp = DateTime.Now;
                 UpdateStateFile(state);
-                // On évite les négatifs par sécurité
+
+                // Prevent negative size values
                 if (state.SizeRemaining < 0) state.SizeRemaining = 0;
-
-
-
-
             }
 
             foreach (DirectoryInfo subDir in dir.GetDirectories())
             {
                 string newTargetDir = Path.Combine(targetDir, subDir.Name);
 
-                //create an under folder if it doesn't exist before copying files into it
+                // Create subdirectory if it does not exist
                 if (!Directory.Exists(newTargetDir)) Directory.CreateDirectory(newTargetDir);
                 CopyDirectory(subDir.FullName, newTargetDir, job, state);
             }
         }
 
-        // Méthode qui écrit ou met à jour le fichier state.json
+        // Method to update the state.json file
         private void UpdateStateFile(BackupState currentState)
         {
             try
             {
                 List<BackupState> states = new List<BackupState>();
 
-                // Si le fichier existe, on le lit pour ne pas écraser les autres jobs (si on gérait le multi-thread)
-                // Pour la console séquentielle, on écrase ou on met à jour la liste.
+                // Read existing state file
                 if (File.Exists(_stateFilePath))
                 {
                     string json = File.ReadAllText(_stateFilePath);
@@ -276,15 +272,14 @@ namespace EasySave.Services
                     }
                 }
 
-                // On cherche si le job existe déjà dans la liste
+                // Check if the job is already in the list
                 var existingState = states.FirstOrDefault(s => s.JobName == currentState.JobName);
                 if (existingState != null)
                 {
-                    // Mise à jour de l'entrée existante
                     states.Remove(existingState);
                 }
 
-                // On ajoute le nouvel état frais
+                // Add the new state
                 states.Add(currentState);
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
@@ -292,20 +287,21 @@ namespace EasySave.Services
             }
             catch
             {
-                // On ignore les erreurs d'écriture d'état pour ne pas bloquer la copie
+               
             }
         }
 
+        // Helper to convert local path to UNC path
         private string ToUncPath(string path)
         {
             if (string.IsNullOrEmpty(path))
                 return path;
             if (path.StartsWith(@"\\"))
-                return path; // Alreaduy UNC
+                return path;
 
             string machineName = Environment.MachineName;
 
-            // UNC format for windows
+            // UNC format for windows drives
             if (path.Length >= 2 && path[1] == ':')
             {
                 return $@"\\{machineName}\{path[0]}${path.Substring(2)}";

@@ -1,9 +1,9 @@
 ﻿namespace EasySave.Models
 {
-    // Enumération pour sécuriser le choix du type
+    // Enum to define the available backup types
     public enum BackupType
     {
-        Full,        // Sauvegarde complète
-        Differential // Sauvegarde différentielle
+        Full,        // Full backup
+        Differential // Differential backup
     }
 }

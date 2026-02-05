@@ -2,16 +2,22 @@
 {
     public class BackupJob
     {
-        // Le ? rend la variable "nullable" (elle a le droit d'être vide)
+        // The name of the backup job
         public string? Name { get; set; }
+
+        // Path to the source directory
         public string? SourceDirectory { get; set; }
+
+        // Path to the destination directory
         public string? TargetDirectory { get; set; }
+
+        // Type of backup (Full or Differential)
         public BackupType Type { get; set; }
 
-        // Constructeur vide (nécessaire pour plus tard)
+        // Empty constructor needed for JSON serialization
         public BackupJob() { }
 
-        // Constructeur complet
+        // Constructor to initialize the job
         public BackupJob(string name, string source, string target, BackupType type)
         {
             Name = name;

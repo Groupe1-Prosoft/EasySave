@@ -10,6 +10,7 @@ namespace EasySave
 {
     class Program
     {
+        // We initialize the main components of the application
         private static LanguageManager _languageManager = new LanguageManager();
         private static BackupService _backupService = new BackupService(_languageManager);
         private static ConsoleView _view = null!;
@@ -18,17 +19,20 @@ namespace EasySave
         {
             _view = new ConsoleView(_languageManager);
 
+            // If the user provides arguments we run the command line mode directly
             if (args.Length > 0)
             {
                 ExecuteFromCommandeLine(args[0]);
                 return;
             }
 
+            // Otherwise we start the interactive menu mode
             SelectLanguage();
             _view.SetTitle(_languageManager.GetText("Title"));
 
             bool keepRunning = true;
 
+            // This loop keeps the application running until the user chooses to exit
             while (keepRunning)
             {
                 _view.ShowMenu();
@@ -66,6 +70,7 @@ namespace EasySave
             _view.ClearAndShowHeader();
             _view.ShowText("CreateHeader");
 
+            // We check if the maximum number of jobs is reached
             if (_backupService.Jobs.Count >= 5)
             {
                 _view.DisplayError(_languageManager.GetText("JobLimitReached"));
@@ -73,6 +78,7 @@ namespace EasySave
                 return;
             }
 
+            // We ask for the job name and validate it
             string name = _view.PromptInput("EnterJobName");
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -81,6 +87,7 @@ namespace EasySave
                 return;
             }
 
+            // We ask for the source path and check if it exists
             string source = _view.PromptInput("EnterSourcePath");
             if (string.IsNullOrWhiteSpace(source) || !Directory.Exists(source))
             {
@@ -97,6 +104,7 @@ namespace EasySave
                 return;
             }
 
+            // We ask the user to select the backup type
             string typeSelection = _view.PromptInput("SelectType");
             if (typeSelection != "1" && typeSelection != "2")
             {
@@ -106,6 +114,7 @@ namespace EasySave
             }
             BackupType type = (typeSelection == "2") ? BackupType.Differential : BackupType.Full;
 
+            // We create the job and try to add it to the service
             BackupJob newJob = new BackupJob(name, source, target, type);
             bool added = _backupService.AddJob(newJob);
 
@@ -129,6 +138,7 @@ namespace EasySave
             _view.DisplayJobSelection(_backupService.Jobs);
             string input = _view.PromptInput("EnterJobNumber");
 
+            // We check if the input is a valid number corresponding to a job
             if (int.TryParse(input, out int jobNumber) && jobNumber >= 1 && jobNumber <= _backupService.Jobs.Count)
             {
                 BackupJob jobToRun = _backupService.Jobs[jobNumber - 1];
@@ -153,6 +163,7 @@ namespace EasySave
                 return;
             }
 
+            // We loop through all jobs and execute them one by one
             foreach (var job in _backupService.Jobs)
             {
                 _view.ShowTextWithParam("ExecutingJob", job.Name);
@@ -202,6 +213,7 @@ namespace EasySave
             System.Threading.Thread.Sleep(400);
         }
 
+        // This method handles the execution when arguments are passed to the program
         static void ExecuteFromCommandeLine(string argument)
         {
             CommandLineService cmdService = new CommandLineService();

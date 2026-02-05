@@ -50,14 +50,14 @@ To ensure code quality and avoid conflicts, we strictly follow these rules:
 
 dotnet build
 
- Execute first job
+Execute first job
 dotnet run -- 1
 
- Execute jobs 1 to 3
+Execute jobs 1 to 3
 dotnet run -- 1-3
 
  Execute jobs 1 and 3
+ dotnet run -- "1;3"
  
  ## Logs
  For the logs and the state.json, it'll be generate on your computer especially on this path : C/User/username/AppData/Roaming/EasySave
-dotnet run -- "1;3"

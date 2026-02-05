@@ -198,8 +198,8 @@ namespace EasySave.Services
                     var logData = new LogData
                     {
                         Name = job.Name,
-                        Source = file.FullName,
-                        Target = targetFilePath,
+                        Source = ToUncPath(file.FullName),
+                        Target = ToUncPath(targetFilePath),
                         Size = file.Length,
                         TransferTime = timeMs,
                         Timestamp = DateTime.Now
@@ -214,8 +214,8 @@ namespace EasySave.Services
                     var logData = new LogData
                     {
                         Name = job.Name,
-                        Source = file.FullName,
-                        Target = targetFilePath,
+                        Source = ToUncPath(file.FullName),
+                        Target = ToUncPath(targetFilePath),
                         Size = file.Length,
                         TransferTime = -timeMs,
                         Timestamp = DateTime.Now
@@ -289,6 +289,25 @@ namespace EasySave.Services
             {
                 // On ignore les erreurs d'écriture d'état pour ne pas bloquer la copie
             }
+        }
+
+        private string ToUncPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return path;
+            if (path.StartsWith(@"\\"))
+                return path; // Alreaduy UNC
+
+            string machineName = Environment.MachineName;
+
+            // UNC format for windows
+            if (path.Length >= 2 && path[1] == ':')
+            {
+                return $@"\\{machineName}\{path[0]}${path.Substring(2)}";
+            }
+
+            // UNC format for relative paths
+            return $@"\\{machineName}{path}";
         }
     }
 }

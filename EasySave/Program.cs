@@ -107,10 +107,10 @@ namespace EasySave
             BackupType type = (typeSelection == "2") ? BackupType.Differential : BackupType.Full;
 
             BackupJob newJob = new BackupJob(name, source, target, type);
-            bool added = _backup_service.AddJob(newJob);
+            bool added = _backupService.AddJob(newJob);
 
             if (added) _view.DisplaySuccess(_languageManager.GetText("JobCreated"));
-            else _view.DisplayError(_language_manager.GetText("JobLimitReached"));
+            else _view.DisplayError(_languageManager.GetText("JobLimitReached"));
             _view.WaitUser();
         }
 
@@ -168,7 +168,7 @@ namespace EasySave
             _view.ClearAndShowHeader();
             _view.ShowText("DeleteHeader");
 
-            if (_backup_service.Jobs.Count == 0)
+            if (_backupService.Jobs.Count == 0)
             {
                 _view.ShowText("NoJobs");
                 _view.WaitUser();
@@ -186,7 +186,7 @@ namespace EasySave
             }
             else
             {
-                _view.DisplayError(_language_manager.GetText("InvalidOption"));
+                _view.DisplayError(_languageManager.GetText("InvalidOption"));
             }
             _view.WaitUser();
         }
@@ -210,7 +210,7 @@ namespace EasySave
             foreach (int index in jobIndices)
             {
                 if (index >= 1 && index <= _backupService.Jobs.Count)
-                {       
+                {
                     BackupJob job = _backupService.Jobs[index - 1];
                     _view.ShowTextWithParam("ExecutingJob", job.Name);
                     _backupService.ExecuteJob(job);

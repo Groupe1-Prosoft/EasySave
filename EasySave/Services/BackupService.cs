@@ -111,6 +111,8 @@ namespace EasySave.Services
             state.State = "NON ACTIF";
             state.CurrentSourceFile = "";
             state.CurrentTargetFile = "";
+
+            state.Timestamp = DateTime.Now; // Update timestamp for job completion
             UpdateStateFile(state);
         }
 
@@ -164,6 +166,9 @@ namespace EasySave.Services
                             ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
                             : 0;
 
+                        //Update of the state file to reflect the skipped file and progression
+                        state.Timestamp = DateTime.Now;
+
                         // On sauvegarde l'état pour que la barre de progression avance
                         UpdateStateFile(state);
 
@@ -177,6 +182,10 @@ namespace EasySave.Services
                 state.CurrentSourceFile = file.FullName;
                 state.CurrentTargetFile = targetFilePath;
                 state.State = "ACTIF"; // On confirme qu'on est actif
+
+                //Update of the state file to reflect the current file being copied
+                state.Timestamp = DateTime.Now;
+
                 UpdateStateFile(state); // Écriture JSON en temps réel
 
 
@@ -222,6 +231,8 @@ namespace EasySave.Services
                 state.Progression = state.TotalFiles > 0
     ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
     : 0;
+
+                state.Timestamp = DateTime.Now; // Update timestamp for each file processed
                 UpdateStateFile(state);
                 if (state.SizeRemaining < 0) state.SizeRemaining = 0;
                 // On évite les négatifs par sécurité

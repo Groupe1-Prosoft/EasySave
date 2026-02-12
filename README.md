@@ -64,7 +64,7 @@ dotnet run -- 1-3
 ### UML Diagrams
 Click the link below to view the design documentation:
 
-* [View Project Documentation (UMLv2)](Diagrams/UMLv2.md)
+* [View Project Documentation (UMLv2)](Diagrams/UML.md)
 
 ### Release (Download)
 Access the compiled version for evaluation below:

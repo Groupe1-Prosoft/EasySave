@@ -60,7 +60,10 @@ classDiagram
         +Main(args: string[])
         +ParseArguments(args: string[]) List~int~
     }
-    
+    class CommandLineService {
+    +ParseArgument(argument: string) List~int~
+    }
+
     class ConsoleView {
         +ShowMenu()
         +GetInput() string
@@ -163,6 +166,7 @@ classDiagram
     Program *-- ConsoleView
     Program *-- Configuration
     Program --> BackupService
+    Program ..> CommandLineService : uses
     ConsoleView --> LanguageManager
     
     

@@ -24,6 +24,7 @@ EasySave provides a console-based backup application (V1) with planned evolution
 
 ## Repository structure
 
+````
 EasySave/
 ├── Diagrams/
 │   ├── UML.md                       # UML diagrams V1
@@ -49,8 +50,7 @@ EasySave/
 │   ├── ViewModels/                  # MVVM ViewModels
 │   └── Views/                       # MVVM Views
 └── README.md
-
-
+````
 
 ---
 
@@ -65,6 +65,7 @@ The solution is divided into several projects to adhere to the Separation of Con
 
 The console application follows the **Model-View-Controller** pattern:
 
+````
 ┌─────────────────────────────────────────────────────────────┐
 │                        Program.cs                           │
 │                       (CONTROLLER)                          │
@@ -89,15 +90,14 @@ The console application follows the **Model-View-Controller** pattern:
 │  - GetText()                │   │  - WriteLog()             │
 │  - SetLanguage()            │   │  - CreateDailyLogFile()   │
 └─────────────────────────────┘   └───────────────────────────┘
-
-
+````
 
 ---
 
 ## Design Patterns
 
 | Pattern | Class | Description |
-|---------|-------|-------------|
+
 | **Singleton** | `LanguageManager` | Single instance for translations across the app |
 | **Facade** | `BackupService` | Simplifies complex backup operations |
 | **MVC** | `Program`, `ConsoleView`, `Models` | Separation of concerns |
@@ -107,7 +107,8 @@ The console application follows the **Model-View-Controller** pattern:
 
 The `LanguageManager` uses the Singleton pattern to ensure a single instance manages translations across the entire application.
 
-```csharp
+``` 
+csharp
 // Private constructor prevents direct instantiation
 private LanguageManager() { }
 
@@ -121,28 +122,34 @@ public static LanguageManager Instance => _instance.Value;
 var lang = LanguageManager.Instance;
 lang.SetLanguage("fr");
 string text = lang.GetText("Goodbye"); // "Au revoir !"
-Advantages:
+```
 
-Guarantees a single instance across the application
-Thread-safe with Lazy<T> initialization
-Global access without passing references everywhere
-Prevents inconsistent language state
-Facade Pattern (BackupService)
-The BackupService acts as a Facade, hiding the complexity of file operations, state management, and logging behind a simple interface.
+**Advantages:**
 
+-Guarantees a single instance across the application
+-Thread-safe with Lazy<T> initialization
+-Global access without passing references everywhere
+-Prevents inconsistent language state
 
+##Facade Pattern (BackupService)
+The `BackupService` acts as a Facade, hiding the complexity of file operations, state management, and logging behind a simple interface.
+
+```csharp
 // Client code is simple - complexity hidden inside
 _backupService.ExecuteJob(job);         // Single job
 _backupService.ExecuteSequential(jobs); // Multiple jobs
-Advantages:
+```
+**Advantages:**
 
-Simplifies client code (Program.cs only calls 2 methods)
-Hides complexity of file copying, state tracking, and logging
-Easy to modify internal implementation without affecting clients
-Dependency Injection (BackupService)
-The BackupService receives its dependencies through constructor injection, following the Dependency Inversion Principle (DIP).
+-Simplifies client code (Program.cs only calls 2 methods)
+-Hides complexity of file copying, state tracking, and logging
+-Easy to modify internal implementation without affecting clients
 
+##Dependency Injection (BackupService)
 
+The `BackupService` receives its dependencies through constructor injection, following the Dependency Inversion Principle (DIP).
+
+```csharp
 // Interface defines the contract
 public interface ILogger
 {
@@ -152,17 +159,21 @@ public interface ILogger
 // Injection via constructor
 ILogger logger = new Logger();
 var backupService = new BackupService(logger);
-Advantages:
+```
+**Advantages:**
 
-Loose coupling between BackupService and Logger
-Easy to swap implementations (e.g., for unit testing)
-Follows SOLID principles (DIP)
+-Loose coupling between BackupService and Logger
+-Easy to swap implementations (e.g., for unit testing)
+-Follows SOLID principles (DIP)
+
+___
 
 ## Development Workflow
 To ensure code quality and avoid conflicts, we strictly follow these rules:
 
-Branching Strategy
+## Branching Strategy
 
+```
 main          ─────●─────────────────●───────────► (stable releases)
                    │                 ▲
                    │                 │ merge
@@ -171,6 +182,8 @@ develop       ─────●────●────●──────
                         │    │      │ merge
 feat/xxx   ──────────●────●      │
 feat/yyy   ──────────────────────●
+```
+1. **Branch types:** *
 main: Stable and deliverable version (tags: v1.0, v2.0, etc.)
 develop: Common development version
 feat/*: Working branch for each task
@@ -179,6 +192,8 @@ feat/*: Working branch for each task
     * No personal names in branch names.
     * Code and comments must be in English.
     * No dead code or duplication (DRY principle).
+
+    ___
 
 ## Installation & Usage
 1.  Clone the repository: `git clone https://github.com/yyyanis/EasySave.git`

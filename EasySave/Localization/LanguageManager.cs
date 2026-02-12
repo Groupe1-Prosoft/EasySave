@@ -3,17 +3,24 @@ using System.Collections.Generic;
 
 namespace EasySave.Localization
 {
-    // Simple localization manager: holds translations and returns text by key.
-    // Supports a minimal en/fr implementation used by the console UI.
+    /// <summary>
+    /// Provides a minimal EN/FR localization layer for console UI texts.
+    /// </summary>
     public class LanguageManager
     {
-        // Current language code, e.g. "en" or "fr".
+        /// <summary>
+        /// Active language code (e.g., "en" or "fr").
+        /// </summary>
         private string _currentLanguage;
 
-        // Active translations map for the current language.
+        /// <summary>
+        /// Active translation map for the current language.
+        /// </summary>
         private Dictionary<string, string> _translations;
 
-        // English translations - small lookup table.
+        /// <summary>
+        /// English translations keyed by UI token.
+        /// </summary>
         private static readonly Dictionary<string, string> EnglishTranslations = new()
         {
             ["Title"] = "EasySave 1.0",
@@ -47,7 +54,6 @@ namespace EasySave.Localization
             ["BackupFinished"] = "Backup finished!",
             ["PressEnterReturn"] = "Press Enter to return to menu...",
             ["ConfirmDelete"] = "Are you sure you want to delete this job? (y/n): ",
-            // placeholders allowed, formatted via GetText(key, args)
             ["ExecutingJob"] = "Executing: {0}",
             ["JobExecuted"] = "Job {0} completed.",
             ["ValidationError"] = "Validation error: {0}",
@@ -55,10 +61,11 @@ namespace EasySave.Localization
             ["Processing"] = "Processing: {0} ({1} files)...",
             ["FileCopied"] = " -> {0} copied.",
             ["CopyError"] = "Copy error: {0}",
-
         };
 
-        // French translations - same keys as English.
+        /// <summary>
+        /// French translations keyed by UI token.
+        /// </summary>
         private static readonly Dictionary<string, string> FrenchTranslations = new()
         {
             ["Title"] = "EasySave 1.0",
@@ -101,25 +108,32 @@ namespace EasySave.Localization
             ["CopyError"] = "Erreur copie : {0}",
         };
 
-        // Expose current language code (read-only).
+        /// <summary>
+        /// Gets the current language code.
+        /// </summary>
         public string CurrentLanguage => _currentLanguage;
 
-        // Initialize with default language (english).
+        /// <summary>
+        /// Initializes with English as default language.
+        /// </summary>
         public LanguageManager()
         {
             _currentLanguage = "en";
             _translations = EnglishTranslations;
         }
 
-        // Set active language and reload the translation map.
+        /// <summary>
+        /// Sets the active language and refreshes translations.
+        /// </summary>
         public void SetLanguage(string lang)
         {
             _currentLanguage = lang.ToLower();
             LoadTranslations();
         }
 
-        // Return the translation for the given key.
-        // If missing, return the key itself as a fallback.
+        /// <summary>
+        /// Returns the localized value for a key, or the key itself if missing.
+        /// </summary>
         public string GetText(string key)
         {
             if (_translations.TryGetValue(key, out string? value))
@@ -129,15 +143,18 @@ namespace EasySave.Localization
             return key;
         }
 
-        // Get a formatted translation using string.Format.
-        // Placeholders in translations are supported, e.g. "Job {0} completed."
+        /// <summary>
+        /// Returns a localized value formatted with parameters.
+        /// </summary>
         public string GetText(string key, params object[] args)
         {
             string text = GetText(key);
             return string.Format(text, args);
         }
 
-        // Internal loader: selects the correct translations dictionary.
+        /// <summary>
+        /// Loads the translation dictionary for the current language.
+        /// </summary>
         public bool LoadTranslations()
         {
             _translations = _currentLanguage switch

@@ -5,22 +5,28 @@ using System.Text.Json;
 
 namespace EasyLog
 {
+    /// <summary>
+    /// Writes JSON logs to a daily file under AppData.
+    /// </summary>
     public class Logger : ILogger
     {
         private string _logFilePath;
 
+        /// <summary>
+        /// Initializes the logger and resolves the daily file path.
+        /// </summary>
         public Logger()
         {
-            // Set the file path when the logger starts
             _logFilePath = CreateDailyLogFile();
         }
 
-        // Generates the daily log file path (e.g., 2024-02-04.json)
+        /// <summary>
+        /// Creates the daily log file path (yyyy-MM-dd.json).
+        /// </summary>
         public string CreateDailyLogFile()
         {
             string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs");
 
-            // Create directory if it does not exist
             if (!Directory.Exists(appDataPath))
             {
                 Directory.CreateDirectory(appDataPath);
@@ -30,19 +36,19 @@ namespace EasyLog
             return Path.Combine(appDataPath, fileName);
         }
 
+        /// <summary>
+        /// Appends a log entry to the daily JSON log file.
+        /// </summary>
         public bool WriteLog(LogData data)
         {
-            // Validation check before writing
             if (!data.Validate()) return false;
 
             try
             {
-                // Update path in case the date changed during execution
                 _logFilePath = CreateDailyLogFile();
 
                 List<LogData> logs = new List<LogData>();
 
-                // Read existing logs if the file exists
                 if (File.Exists(_logFilePath))
                 {
                     string existingJson = File.ReadAllText(_logFilePath);
@@ -52,10 +58,8 @@ namespace EasyLog
                     }
                 }
 
-                // Add the new log entry
                 logs.Add(data);
 
-                // Write everything back to the file with formatting
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 File.WriteAllText(_logFilePath, JsonSerializer.Serialize(logs, options));
 

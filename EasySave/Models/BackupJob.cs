@@ -1,23 +1,38 @@
 ﻿namespace EasySave.Models
 {
+    /// <summary>
+    /// Defines a backup job persisted in jobs.json.
+    /// </summary>
     public class BackupJob
     {
-        // The name of the backup job
+        /// <summary>
+        /// Gets or sets the user-defined job name.
+        /// </summary>
         public string? Name { get; set; }
 
-        // Path to the source directory
+        /// <summary>
+        /// Gets or sets the source directory path to back up.
+        /// </summary>
         public string? SourceDirectory { get; set; }
 
-        // Path to the destination directory
+        /// <summary>
+        /// Gets or sets the destination directory path.
+        /// </summary>
         public string? TargetDirectory { get; set; }
 
-        // Type of backup (Full or Differential)
+        /// <summary>
+        /// Gets or sets the backup strategy (Full or Differential).
+        /// </summary>
         public BackupType Type { get; set; }
 
-        // Empty constructor needed for JSON serialization
+        /// <summary>
+        /// Initializes an empty instance for JSON serialization.
+        /// </summary>
         public BackupJob() { }
 
-        // Constructor to initialize the job
+        /// <summary>
+        /// Initializes a fully defined backup job.
+        /// </summary>
         public BackupJob(string name, string source, string target, BackupType type)
         {
             Name = name;

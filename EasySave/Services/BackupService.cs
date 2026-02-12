@@ -9,22 +9,29 @@ using EasySave.Localization;
 
 namespace EasySave.Services
 {
+    /// <summary>
+    /// Manages backup jobs, state tracking, and file transfer logging.
+    /// </summary>
     public class BackupService
     {
+        /// <summary>
+        /// Gets or sets the in-memory list of backup jobs.
+        /// </summary>
         public List<BackupJob> Jobs { get; set; }
-        private readonly ILogger _logger;
 
+        private readonly ILogger _logger;
         private readonly string _jobsFilePath;
         private readonly string _stateFilePath;
-
         private readonly LanguageManager _lang;
 
+        /// <summary>
+        /// Initializes the service, prepares AppData paths, and loads jobs.
+        /// </summary>
         public BackupService(LanguageManager lang)
         {
             _lang = lang;
             string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave");
 
-            // Create the directory if it does not exist
             if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
 
             _jobsFilePath = Path.Combine(appDataPath, "jobs.json");
@@ -34,17 +41,20 @@ namespace EasySave.Services
             LoadJobs();
         }
 
-        // Methods to manage backup jobs
-
+        /// <summary>
+        /// Adds a job and persists it, enforcing the 5-job limit.
+        /// </summary>
         public bool AddJob(BackupJob job)
         {
-            // Limit to 5 jobs max
             if (Jobs.Count >= 5) return false;
             Jobs.Add(job);
             SaveJobs();
             return true;
         }
 
+        /// <summary>
+        /// Deletes a job by index and persists the updated list.
+        /// </summary>
         public bool DeleteJob(int index)
         {
             int realIndex = index - 1;
@@ -57,6 +67,9 @@ namespace EasySave.Services
             return false;
         }
 
+        /// <summary>
+        /// Writes jobs.json with formatted JSON.
+        /// </summary>
         private void SaveJobs()
         {
             try
@@ -67,6 +80,9 @@ namespace EasySave.Services
             catch (Exception ex) { Console.WriteLine($"Error saving jobs: {ex.Message}"); }
         }
 
+        /// <summary>
+        /// Loads jobs.json into the in-memory list.
+        /// </summary>
         private void LoadJobs()
         {
             try
@@ -81,8 +97,9 @@ namespace EasySave.Services
             catch { Jobs = new List<BackupJob>(); }
         }
 
-        // Methods for execution and state management
-
+        /// <summary>
+        /// Executes a job, updates state.json in real time, and logs file transfers.
+        /// </summary>
         public void ExecuteJob(BackupJob job)
         {
             if (!Directory.Exists(job.SourceDirectory))
@@ -94,7 +111,6 @@ namespace EasySave.Services
             }
             if (!Directory.Exists(job.TargetDirectory)) Directory.CreateDirectory(job.TargetDirectory);
 
-            // Initialize the state of the backup
             var state = new BackupState
             {
                 JobName = job.Name,
@@ -104,18 +120,14 @@ namespace EasySave.Services
                 TargetDirectory = job.TargetDirectory
             };
 
-            // Calculate total files and size
             CalculateTotals(job.SourceDirectory, state);
 
-            // Save the initial state
             UpdateStateFile(state);
 
             Console.WriteLine(_lang.GetText("Processing", job.Name, state.TotalFiles));
 
-            // Start the copy process
             CopyDirectory(job.SourceDirectory, job.TargetDirectory, job, state);
 
-            // End of the job
             state.State = "NON ACTIF";
             state.CurrentSourceFile = "";
             state.CurrentTargetFile = "";
@@ -124,13 +136,15 @@ namespace EasySave.Services
             UpdateStateFile(state);
         }
 
+        /// <summary>
+        /// Computes total file count and size for the given source path.
+        /// </summary>
         private void CalculateTotals(string path, BackupState state)
         {
             try
             {
                 DirectoryInfo dir = new DirectoryInfo(path);
 
-                // Count all files recursively
                 var files = dir.GetFiles("*", SearchOption.AllDirectories);
 
                 state.TotalFiles = files.Length;
@@ -148,6 +162,10 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>
+        /// Recursively copies directories and logs each file transfer.
+        /// Supports differential copy behavior.
+        /// </summary>
         private void CopyDirectory(string sourceDir, string targetDir, BackupJob job, BackupState state)
         {
             DirectoryInfo dir = new DirectoryInfo(sourceDir);
@@ -156,27 +174,22 @@ namespace EasySave.Services
             {
                 string targetFilePath = Path.Combine(targetDir, file.Name);
 
-                // Differential backup logic
                 if (job.Type == BackupType.Differential && File.Exists(targetFilePath))
                 {
                     FileInfo destFile = new FileInfo(targetFilePath);
 
-                    // If source file is older or same date as destination we skip it
                     if (file.LastWriteTime <= destFile.LastWriteTime)
                     {
-                        // Update counters because the file is skipped
                         state.FilesRemaining--;
                         state.SizeRemaining -= file.Length;
                         if (state.SizeRemaining < 0) state.SizeRemaining = 0;
 
-                        // Update progression before skipping the file
                         state.Progression = state.TotalFiles > 0
                             ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
                             : 0;
 
                         state.Timestamp = DateTime.Now;
 
-                        // Save state to keep the progress bar accurate
                         UpdateStateFile(state);
 
                         continue;
@@ -185,7 +198,6 @@ namespace EasySave.Services
 
                 long startTime = DateTime.Now.Ticks;
 
-                // Update state before copy
                 state.CurrentSourceFile = file.FullName;
                 state.CurrentTargetFile = targetFilePath;
                 state.State = "ACTIF";
@@ -196,7 +208,6 @@ namespace EasySave.Services
 
                 try
                 {
-                    // Copy the file and overwrite if exists
                     file.CopyTo(targetFilePath, true);
                     long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
 
@@ -216,7 +227,6 @@ namespace EasySave.Services
                 {
                     long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
 
-                    // Log the error with negative time
                     var logData = new LogData
                     {
                         Name = job.Name,
@@ -233,7 +243,6 @@ namespace EasySave.Services
                 state.FilesRemaining--;
                 state.SizeRemaining -= file.Length;
 
-                // Update progression after copying the file
                 state.Progression = state.TotalFiles > 0
                     ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
                     : 0;
@@ -241,7 +250,6 @@ namespace EasySave.Services
                 state.Timestamp = DateTime.Now;
                 UpdateStateFile(state);
 
-                // Prevent negative size values
                 if (state.SizeRemaining < 0) state.SizeRemaining = 0;
             }
 
@@ -249,20 +257,20 @@ namespace EasySave.Services
             {
                 string newTargetDir = Path.Combine(targetDir, subDir.Name);
 
-                // Create subdirectory if it does not exist
                 if (!Directory.Exists(newTargetDir)) Directory.CreateDirectory(newTargetDir);
                 CopyDirectory(subDir.FullName, newTargetDir, job, state);
             }
         }
 
-        // Method to update the state.json file
+        /// <summary>
+        /// Writes or updates the job entry in state.json.
+        /// </summary>
         private void UpdateStateFile(BackupState currentState)
         {
             try
             {
                 List<BackupState> states = new List<BackupState>();
 
-                // Read existing state file
                 if (File.Exists(_stateFilePath))
                 {
                     string json = File.ReadAllText(_stateFilePath);
@@ -272,14 +280,12 @@ namespace EasySave.Services
                     }
                 }
 
-                // Check if the job is already in the list
                 var existingState = states.FirstOrDefault(s => s.JobName == currentState.JobName);
                 if (existingState != null)
                 {
                     states.Remove(existingState);
                 }
 
-                // Add the new state
                 states.Add(currentState);
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
@@ -287,27 +293,27 @@ namespace EasySave.Services
             }
             catch
             {
-               
             }
         }
 
-        // Helper to convert local path to UNC path
+        /// <summary>
+        /// Converts a local path to a UNC-like path using the machine name.
+        /// </summary>
         private string ToUncPath(string path)
         {
             if (string.IsNullOrEmpty(path))
                 return path;
             if (path.StartsWith(@"\\"))
+
                 return path;
 
             string machineName = Environment.MachineName;
 
-            // UNC format for windows drives
             if (path.Length >= 2 && path[1] == ':')
             {
                 return $@"\\{machineName}\{path[0]}${path.Substring(2)}";
             }
 
-            // UNC format for relative paths
             return $@"\\{machineName}{path}";
         }
     }

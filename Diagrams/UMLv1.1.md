@@ -114,7 +114,9 @@ classDiagram
         +CurrentSourceFile: string «property»
         +CurrentTargetFile: string «property»
         +UpdateStateJSON() bool
+        +UpdateStateXML() bool
         +ToJSON() string
+        +ToXML() string
     }
 
     class BackupJob {

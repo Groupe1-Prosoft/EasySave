@@ -72,8 +72,8 @@ The console application follows the **Model-View-Controller** pattern:
 │  - Handles user input                                       │
 │  - Coordinates View and Services                            │
 └─────────────────┬───────────────────────────┬───────────────┘
-│                           │
-▼                           ▼
+                  │                           │
+                  ▼                           ▼
 ┌─────────────────────────────┐   ┌───────────────────────────┐
 │      ConsoleView            │   │     BackupService         │
 │         (VIEW)              │   │       (SERVICE)           │
@@ -82,8 +82,8 @@ The console application follows the **Model-View-Controller** pattern:
 │  - DisplayError()           │   │  - CopyDirectory()        │
 │  - ShowProgress()           │   │                           │
 └─────────────────────────────┘   └───────────────────────────┘
-│                           │
-▼                           ▼
+                 │                           │
+                 ▼                           ▼
 ┌─────────────────────────────┐   ┌───────────────────────────┐
 │    LanguageManager          │   │     EasyLog DLL           │
 │    (SINGLETON)              │   │     (Logger)              │
@@ -97,7 +97,7 @@ The console application follows the **Model-View-Controller** pattern:
 ## Design Patterns
 
 | Pattern | Class | Description |
-
+|---------|-------|-------------|
 | **Singleton** | `LanguageManager` | Single instance for translations across the app |
 | **Facade** | `BackupService` | Simplifies complex backup operations |
 | **MVC** | `Program`, `ConsoleView`, `Models` | Separation of concerns |
@@ -107,8 +107,7 @@ The console application follows the **Model-View-Controller** pattern:
 
 The `LanguageManager` uses the Singleton pattern to ensure a single instance manages translations across the entire application.
 
-``` 
-csharp
+```csharp
 // Private constructor prevents direct instantiation
 private LanguageManager() { }
 
@@ -131,7 +130,7 @@ string text = lang.GetText("Goodbye"); // "Au revoir !"
 -Global access without passing references everywhere
 -Prevents inconsistent language state
 
-##Facade Pattern (BackupService)
+## Facade Pattern (BackupService)
 The `BackupService` acts as a Facade, hiding the complexity of file operations, state management, and logging behind a simple interface.
 
 ```csharp
@@ -145,7 +144,7 @@ _backupService.ExecuteSequential(jobs); // Multiple jobs
 -Hides complexity of file copying, state tracking, and logging
 -Easy to modify internal implementation without affecting clients
 
-##Dependency Injection (BackupService)
+## Dependency Injection (BackupService)
 
 The `BackupService` receives its dependencies through constructor injection, following the Dependency Inversion Principle (DIP).
 
@@ -180,8 +179,8 @@ main          ─────●────────────────
 develop       ─────●────●────●──────●────────────► (integration)
                         │    ▲      ▲
                         │    │      │ merge
-feat/xxx   ──────────●────●      │
-feat/yyy   ──────────────────────●
+feat/xxx   ──────────●───────●      │
+feat/yyy   ─────────────────────────●
 ```
 1. **Branch types:** *
 main: Stable and deliverable version (tags: v1.0, v2.0, etc.)

@@ -5,17 +5,24 @@ using EasySave.Models;
 
 namespace EasySave.Views
 {
+    /// <summary>
+    /// Handles all console UI rendering and input helpers.
+    /// </summary>
     public class ConsoleView
     {
         private readonly LanguageManager _languageManager;
 
-        // Constructor to initialize the view with the language manager
+        /// <summary>
+        /// Initializes the console view with a language manager.
+        /// </summary>
         public ConsoleView(LanguageManager languageManager)
         {
             _languageManager = languageManager;
         }
 
-        // Displays the application banner in ASCII art
+        /// <summary>
+        /// Displays the ASCII art application banner.
+        /// </summary>
         public void ShowHeader()
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -38,7 +45,9 @@ namespace EasySave.Views
             Console.ResetColor();
         }
 
-        // Clears the screen and displays the main menu options
+        /// <summary>
+        /// Displays the main menu and prompts for the user choice.
+        /// </summary>
         public void ShowMenu()
         {
             Console.Clear();
@@ -49,18 +58,23 @@ namespace EasySave.Views
             Console.WriteLine(_languageManager.GetText("ExecuteJob"));
             Console.WriteLine(_languageManager.GetText("ExecuteAllJobs"));
             Console.WriteLine(_languageManager.GetText("DeleteJob"));
+            Console.WriteLine(_languageManager.GetText("Options"));
             Console.WriteLine(_languageManager.GetText("Exit"));
             Console.WriteLine(_languageManager.GetText("Separator"));
             Console.Write(_languageManager.GetText("YourChoice"));
         }
 
-        // Reads a line of text entered by the user
+        /// <summary>
+        /// Reads a single line from the console.
+        /// </summary>
         public string GetInput()
         {
             return Console.ReadLine() ?? string.Empty;
         }
 
-        // Displays the language selection screen at startup
+        /// <summary>
+        /// Displays the language selection prompt at startup.
+        /// </summary>
         public void ShowLanguageSelection()
         {
             Console.Clear();
@@ -70,14 +84,32 @@ namespace EasySave.Views
             Console.Write("> ");
         }
 
-        // Utility method to clear the console and redisplay the header
+        /// <summary>
+        /// Prompts the user to select the log format.
+        /// </summary>
+        public string SelectLogFormat()
+        {
+            Console.WriteLine("1. Format JSON (Défaut)");
+            Console.WriteLine("2. Format XML");
+            Console.Write("> ");
+            string choice = Console.ReadLine() ?? string.Empty;
+            return choice.Trim().Equals("2") || choice.Trim().Equals("xml", StringComparison.OrdinalIgnoreCase)
+                ? "xml"
+                : "json";
+        }
+
+        /// <summary>
+        /// Clears the console and reprints the header.
+        /// </summary>
         public void ClearAndShowHeader()
         {
             Console.Clear();
             ShowHeader();
         }
 
-        // Helper to display a message with a specific color
+        /// <summary>
+        /// Displays a colored message without pausing.
+        /// </summary>
         public void DisplayMessage(string message, ConsoleColor color)
         {
             if (!string.IsNullOrEmpty(message))
@@ -88,19 +120,25 @@ namespace EasySave.Views
             }
         }
 
-        // Displays an error message in red
+        /// <summary>
+        /// Displays an error message in red.
+        /// </summary>
         public void DisplayError(string message)
         {
             DisplayMessage(message, ConsoleColor.Red);
         }
 
-        // Displays a success message in green
+        /// <summary>
+        /// Displays a success message in green.
+        /// </summary>
         public void DisplaySuccess(string message)
         {
             DisplayMessage(message, ConsoleColor.Green);
         }
 
-        // Pauses the program and waits for the user to press Enter
+        /// <summary>
+        /// Pauses execution until Enter is pressed.
+        /// </summary>
         public void WaitUser()
         {
             Console.WriteLine();
@@ -108,7 +146,9 @@ namespace EasySave.Views
             Console.ReadLine();
         }
 
-        // Displays the list of all configured backup jobs
+        /// <summary>
+        /// Displays the list of configured backup jobs.
+        /// </summary>
         public void DisplayJobList(List<BackupJob> jobs)
         {
             if (jobs == null || jobs.Count == 0)
@@ -120,12 +160,14 @@ namespace EasySave.Views
                 for (int i = 0; i < jobs.Count; i++)
                 {
                     var job = jobs[i];
-                    Console.WriteLine($"{i + 1}. {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}");
+                    Console.WriteLine($"{i + 1}. {job.Name} | {job.Type} | {job.SourceDir} -> {job.TargetDir}");
                 }
             }
         }
 
-        // Displays a numbered list of jobs for selection
+        /// <summary>
+        /// Displays a numbered list for job selection.
+        /// </summary>
         public void DisplayJobSelection(List<BackupJob> jobs)
         {
             for (int i = 0; i < jobs.Count; i++)
@@ -135,25 +177,33 @@ namespace EasySave.Views
             Console.WriteLine();
         }
 
-        // Sets the title of the console window
+        /// <summary>
+        /// Sets the console window title.
+        /// </summary>
         public void SetTitle(string title)
         {
             Console.Title = title;
         }
 
-        // Displays a localized text based on the key
+        /// <summary>
+        /// Displays a localized string by key.
+        /// </summary>
         public void ShowText(string key)
         {
             Console.WriteLine(_languageManager.GetText(key));
         }
 
-        // Displays a localized text with parameters (like job name or numbers)
+        /// <summary>
+        /// Displays a localized string with formatting parameters.
+        /// </summary>
         public void ShowTextWithParam(string key, params object[] args)
         {
             Console.WriteLine(_languageManager.GetText(key, args));
         }
 
-        // Displays a visual progress bar based on the backup state
+        /// <summary>
+        /// Renders a progress bar for the provided state.
+        /// </summary>
         public void ShowProgress(BackupState state)
         {
             if (state == null) return;
@@ -171,7 +221,9 @@ namespace EasySave.Views
             Console.Write($"\r[{bar}] {progress}% - {state.FilesRemaining} files remaining");
         }
 
-        // Displays a prompt message and waits for user input
+        /// <summary>
+        /// Prompts for a localized input and returns the user entry.
+        /// </summary>
         public string PromptInput(string key)
         {
             Console.Write(_languageManager.GetText(key));

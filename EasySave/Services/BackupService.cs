@@ -12,7 +12,7 @@ namespace EasySave.Services
     /// </summary>
     public class BackupService
     {
-        private readonly Logger logger;
+        private readonly ILogger logger;
         private readonly Configuration configuration;
         private BackupState? currentState;
 

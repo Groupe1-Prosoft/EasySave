@@ -5,6 +5,9 @@
     /// </summary>
     public interface ILogger
     {
-        void WriteLog(LogData data);
+        /// <summary>
+        /// Writes a log entry to the target storage.
+        /// </summary>
+        bool WriteLog(LogData data);
     }
 }

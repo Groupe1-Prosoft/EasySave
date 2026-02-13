@@ -13,206 +13,230 @@ namespace EasySave
     class Program
     {
         /// <summary>
-        /// Provides UI localization.
-        /// </summary>
-        private static LanguageManager _languageManager = new LanguageManager();
-
-        /// <summary>
-        /// Stores runtime configuration values.
-        /// </summary>
-        private static Configuration _configuration = new Configuration();
-
-        /// <summary>
-        /// Provides job management and backup execution.
-        /// </summary>
-        private static BackupService _backupService = null!;
-
-        /// <summary>
-        /// Provides console rendering utilities.
-        /// </summary>
-        private static ConsoleView _view = null!;
-
-        /// <summary>
         /// Application entry point.
         /// </summary>
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            _view = new ConsoleView(_languageManager);
-            _configuration.LoadConfig();
-            _backupService = new BackupService(_configuration);
+            var languageManager = new LanguageManager();
+            var configuration = new Configuration();
+            configuration.LoadConfig();
+
+            var view = new ConsoleView(languageManager);
+            var backupService = new BackupService(configuration);
 
             if (args.Length > 0)
             {
-                CommandLineService cmd = new CommandLineService();
+                var cmd = new CommandLineService();
                 List<int> ids = cmd.ParseArgument(args[0]);
-                _backupService.ExecuteSequential(ids);
+                backupService.ExecuteSequential(ids);
                 return;
             }
 
-            SelectLanguage();
-            _configuration.LogFormat = _view.SelectLogFormat();
-            _configuration.SaveConfig();
-            _backupService = new BackupService(_configuration);
+            Console.Clear();
+            Console.WriteLine("EasySave 1.0");
+            Console.WriteLine();
+            Console.WriteLine("Select language: 1. English  2. Français");
+            Console.Write("> ");
+            string languageChoice = Console.ReadLine() ?? string.Empty;
+            languageManager.SetLanguage(languageChoice == "2" ? "fr" : "en");
+
+            configuration.LogFormat = view.SelectLogFormat();
+            configuration.SaveConfig();
+            backupService = new BackupService(configuration);
 
             bool keepRunning = true;
 
             while (keepRunning)
             {
-                _view.ShowMenu();
-                string userChoice = _view.GetInput();
+                view.ShowMenu();
+                string userChoice = view.GetInput();
 
                 switch (userChoice)
                 {
-                    case "1": ListJobs(); break;
-                    case "2": CreateJob(); break;
-                    case "3": ExecuteJob(); break;
-                    case "4": ExecuteSequential(); break;
-                    case "5": DeleteJob(); break;
-                    case "6":
-                        _configuration.LogFormat = _view.SelectLogFormat();
-                        _configuration.SaveConfig();
-                        _backupService = new BackupService(_configuration);
+                    case "1":
+                        Console.Clear();
+                        Console.WriteLine(languageManager.GetText("ListHeader"));
+
+                        var jobsList = configuration.GetJobs();
+                        if (jobsList.Count == 0)
+                        {
+                            Console.WriteLine(languageManager.GetText("NoJobs"));
+                        }
+                        else
+                        {
+                            for (int i = 0; i < jobsList.Count; i++)
+                            {
+                                var job = jobsList[i];
+                                Console.WriteLine($"{i + 1}. {job.Name} | {job.Type} | {job.SourceDir} -> {job.TargetDir}");
+                            }
+                        }
+
+                        Console.WriteLine();
+                        Console.WriteLine(languageManager.GetText("PressEnterReturn"));
+                        Console.ReadLine();
                         break;
+
+                    case "2":
+                        Console.Clear();
+                        Console.WriteLine(languageManager.GetText("CreateHeader"));
+
+                        Console.Write(languageManager.GetText("EnterJobName"));
+                        string name = Console.ReadLine() ?? string.Empty;
+
+                        Console.Write(languageManager.GetText("EnterSourcePath"));
+                        string source = Console.ReadLine() ?? string.Empty;
+
+                        Console.Write(languageManager.GetText("EnterTargetPath"));
+                        string target = Console.ReadLine() ?? string.Empty;
+
+                        Console.Write(languageManager.GetText("SelectType"));
+                        string typeSelection = Console.ReadLine() ?? string.Empty;
+
+                        BackupType type = typeSelection == "2" ? BackupType.Differential : BackupType.Full;
+
+                        var newJob = new BackupJob
+                        {
+                            Name = name,
+                            SourceDir = source,
+                            TargetDir = target,
+                            Type = type
+                        };
+
+                        if (!configuration.AddJob(newJob))
+                        {
+                            view.DisplayError(languageManager.GetText("JobLimitReached"));
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine(languageManager.GetText("JobCreated"));
+                            Console.ResetColor();
+                        }
+
+                        Console.WriteLine();
+                        Console.WriteLine(languageManager.GetText("PressEnterReturn"));
+                        Console.ReadLine();
+                        break;
+
+                    case "3":
+                        Console.Clear();
+                        Console.WriteLine(languageManager.GetText("ExecuteHeader"));
+
+                        var jobsExec = configuration.GetJobs();
+                        for (int i = 0; i < jobsExec.Count; i++)
+                        {
+                            Console.WriteLine($"{jobsExec[i].Id}. {jobsExec[i].Name}");
+                        }
+
+                        Console.Write(languageManager.GetText("EnterJobNumber"));
+                        string inputExec = Console.ReadLine() ?? string.Empty;
+
+                        if (int.TryParse(inputExec, out int execId))
+                        {
+                            var job = jobsExec.Find(j => j.Id == execId);
+                            if (job != null && backupService.ExecuteJob(job))
+                            {
+                                Console.ForegroundColor = ConsoleColor.Green;
+                                Console.WriteLine(languageManager.GetText("BackupFinished"));
+                                Console.ResetColor();
+                            }
+                            else
+                            {
+                                view.DisplayError(languageManager.GetText("JobNotFound"));
+                            }
+                        }
+                        else
+                        {
+                            view.DisplayError(languageManager.GetText("InvalidOption"));
+                        }
+
+                        Console.WriteLine();
+                        Console.WriteLine(languageManager.GetText("PressEnterReturn"));
+                        Console.ReadLine();
+                        break;
+
+                    case "4":
+                        Console.Clear();
+
+                        var jobsSeq = configuration.GetJobs();
+                        if (jobsSeq.Count == 0)
+                        {
+                            Console.WriteLine(languageManager.GetText("NoJobs"));
+                            Console.WriteLine();
+                            Console.WriteLine(languageManager.GetText("PressEnterReturn"));
+                            Console.ReadLine();
+                            break;
+                        }
+
+                        List<int> ids = new List<int>();
+                        foreach (var job in jobsSeq) ids.Add(job.Id);
+
+                        backupService.ExecuteSequential(ids);
+
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine(languageManager.GetText("BackupFinished"));
+                        Console.ResetColor();
+
+                        Console.WriteLine();
+                        Console.WriteLine(languageManager.GetText("PressEnterReturn"));
+                        Console.ReadLine();
+                        break;
+
+                    case "5":
+                        Console.Clear();
+                        Console.WriteLine(languageManager.GetText("DeleteHeader"));
+
+                        var jobsDelete = configuration.GetJobs();
+                        for (int i = 0; i < jobsDelete.Count; i++)
+                        {
+                            Console.WriteLine($"{jobsDelete[i].Id}. {jobsDelete[i].Name}");
+                        }
+
+                        Console.Write(languageManager.GetText("EnterJobNumber"));
+                        string inputDelete = Console.ReadLine() ?? string.Empty;
+
+                        if (int.TryParse(inputDelete, out int deleteId))
+                        {
+                            if (configuration.RemoveJob(deleteId))
+                            {
+                                Console.ForegroundColor = ConsoleColor.Green;
+                                Console.WriteLine(languageManager.GetText("JobDeleted"));
+                                Console.ResetColor();
+                            }
+                            else
+                            {
+                                view.DisplayError(languageManager.GetText("JobNotFound"));
+                            }
+                        }
+                        else
+                        {
+                            view.DisplayError(languageManager.GetText("InvalidOption"));
+                        }
+
+                        Console.WriteLine();
+                        Console.WriteLine(languageManager.GetText("PressEnterReturn"));
+                        Console.ReadLine();
+                        break;
+
+                    case "6":
+                        configuration.LogFormat = view.SelectLogFormat();
+                        configuration.SaveConfig();
+                        backupService = new BackupService(configuration);
+                        break;
+
                     case "7":
                         keepRunning = false;
-                        _view.ShowText("Goodbye");
+                        Console.WriteLine(languageManager.GetText("Goodbye"));
                         break;
+
                     default:
-                        _view.DisplayError(_languageManager.GetText("InvalidOption"));
-                        _view.WaitUser();
+                        view.DisplayError(languageManager.GetText("InvalidOption"));
+                        Console.WriteLine();
+                        Console.WriteLine(languageManager.GetText("PressEnterReturn"));
+                        Console.ReadLine();
                         break;
                 }
             }
-        }
-
-        /// <summary>
-        /// Displays configured jobs and returns to the menu.
-        /// </summary>
-        static void ListJobs()
-        {
-            _view.ClearAndShowHeader();
-            _view.ShowText("ListHeader");
-            _view.DisplayJobList(_configuration.GetJobs());
-            _view.WaitUser();
-        }
-
-        /// <summary>
-        /// Creates a job after validating user input.
-        /// </summary>
-        static void CreateJob()
-        {
-            _view.ClearAndShowHeader();
-            _view.ShowText("CreateHeader");
-
-            string name = _view.PromptInput("EnterJobName");
-            string source = _view.PromptInput("EnterSourcePath");
-            string target = _view.PromptInput("EnterTargetPath");
-            string typeSelection = _view.PromptInput("SelectType");
-
-            BackupType type = typeSelection == "2" ? BackupType.Differential : BackupType.Full;
-
-            var job = new BackupJob
-            {
-                Name = name,
-                SourceDir = source,
-                TargetDir = target,
-                Type = type
-            };
-
-            if (!_configuration.AddJob(job))
-                _view.DisplayError(_languageManager.GetText("JobLimitReached"));
-            else
-                _view.DisplaySuccess(_languageManager.GetText("JobCreated"));
-
-            _view.WaitUser();
-        }
-
-        /// <summary>
-        /// Executes a single job chosen by the user.
-        /// </summary>
-        static void ExecuteJob()
-        {
-            _view.ClearAndShowHeader();
-            _view.ShowText("ExecuteHeader");
-
-            var jobs = _configuration.GetJobs();
-            _view.DisplayJobSelection(jobs);
-
-            string input = _view.PromptInput("EnterJobNumber");
-            if (int.TryParse(input, out int id))
-            {
-                var job = jobs.Find(j => j.Id == id);
-                if (job != null && _backupService.ExecuteJob(job))
-                    _view.DisplaySuccess(_languageManager.GetText("BackupFinished"));
-                else
-                    _view.DisplayError(_languageManager.GetText("JobNotFound"));
-            }
-            else
-            {
-                _view.DisplayError(_languageManager.GetText("InvalidOption"));
-            }
-
-            _view.WaitUser();
-        }
-
-        /// <summary>
-        /// Executes all configured jobs sequentially.
-        /// </summary>
-        static void ExecuteSequential()
-        {
-            _view.ClearAndShowHeader();
-
-            var jobs = _configuration.GetJobs();
-            if (jobs.Count == 0)
-            {
-                _view.ShowText("NoJobs");
-                _view.WaitUser();
-                return;
-            }
-
-            List<int> ids = new List<int>();
-            foreach (var job in jobs) ids.Add(job.Id);
-
-            _backupService.ExecuteSequential(ids);
-            _view.DisplaySuccess(_languageManager.GetText("BackupFinished"));
-            _view.WaitUser();
-        }
-
-        /// <summary>
-        /// Deletes a job selected by the user.
-        /// </summary>
-        static void DeleteJob()
-        {
-            _view.ClearAndShowHeader();
-            _view.ShowText("DeleteHeader");
-
-            var jobs = _configuration.GetJobs();
-            _view.DisplayJobSelection(jobs);
-
-            string input = _view.PromptInput("EnterJobNumber");
-            if (int.TryParse(input, out int id))
-            {
-                if (_configuration.RemoveJob(id))
-                    _view.DisplaySuccess(_languageManager.GetText("JobDeleted"));
-                else
-                    _view.DisplayError(_languageManager.GetText("JobNotFound"));
-            }
-            else
-            {
-                _view.DisplayError(_languageManager.GetText("InvalidOption"));
-            }
-
-            _view.WaitUser();
-        }
-
-        /// <summary>
-        /// Prompts the user to choose the UI language.
-        /// </summary>
-        static void SelectLanguage()
-        {
-            _view.ShowLanguageSelection();
-            string choice = _view.GetInput();
-            _languageManager.SetLanguage(choice == "2" ? "fr" : "en");
         }
     }
 }

@@ -1,44 +1,46 @@
-﻿namespace EasySave.Models
+﻿using System.IO;
+
+namespace EasySave.Models
 {
     /// <summary>
-    /// Defines a backup job persisted in jobs.json.
+    /// Defines a backup job persisted in configuration.
     /// </summary>
     public class BackupJob
     {
         /// <summary>
-        /// Gets or sets the user-defined job name.
+        /// Gets or sets the job identifier.
+        /// </summary>
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the job name.
         /// </summary>
         public string? Name { get; set; }
 
         /// <summary>
-        /// Gets or sets the source directory path to back up.
+        /// Gets or sets the source directory.
         /// </summary>
-        public string? SourceDirectory { get; set; }
+        public string? SourceDir { get; set; }
 
         /// <summary>
-        /// Gets or sets the destination directory path.
+        /// Gets or sets the target directory.
         /// </summary>
-        public string? TargetDirectory { get; set; }
+        public string? TargetDir { get; set; }
 
         /// <summary>
-        /// Gets or sets the backup strategy (Full or Differential).
+        /// Gets or sets the backup type.
         /// </summary>
         public BackupType Type { get; set; }
 
         /// <summary>
-        /// Initializes an empty instance for JSON serialization.
+        /// Validates required job fields.
         /// </summary>
-        public BackupJob() { }
-
-        /// <summary>
-        /// Initializes a fully defined backup job.
-        /// </summary>
-        public BackupJob(string name, string source, string target, BackupType type)
+        public bool Validate()
         {
-            Name = name;
-            SourceDirectory = source;
-            TargetDirectory = target;
-            Type = type;
+            return !string.IsNullOrWhiteSpace(Name)
+                && !string.IsNullOrWhiteSpace(SourceDir)
+                && !string.IsNullOrWhiteSpace(TargetDir)
+                && Directory.Exists(SourceDir);
         }
     }
 }

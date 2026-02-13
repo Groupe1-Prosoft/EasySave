@@ -58,6 +58,7 @@ namespace EasySave.Views
             Console.WriteLine(_languageManager.GetText("ExecuteJob"));
             Console.WriteLine(_languageManager.GetText("ExecuteAllJobs"));
             Console.WriteLine(_languageManager.GetText("DeleteJob"));
+            Console.WriteLine(_languageManager.GetText("Options"));
             Console.WriteLine(_languageManager.GetText("Exit"));
             Console.WriteLine(_languageManager.GetText("Separator"));
             Console.Write(_languageManager.GetText("YourChoice"));
@@ -81,6 +82,20 @@ namespace EasySave.Views
             Console.WriteLine();
             Console.WriteLine("Select language: 1. English  2. Français");
             Console.Write("> ");
+        }
+
+        /// <summary>
+        /// Prompts the user to select the log format.
+        /// </summary>
+        public string SelectLogFormat()
+        {
+            Console.WriteLine("1. Format JSON (Défaut)");
+            Console.WriteLine("2. Format XML");
+            Console.Write("> ");
+            string choice = Console.ReadLine() ?? string.Empty;
+            return choice.Trim().Equals("2") || choice.Trim().Equals("xml", StringComparison.OrdinalIgnoreCase)
+                ? "xml"
+                : "json";
         }
 
         /// <summary>
@@ -145,7 +160,7 @@ namespace EasySave.Views
                 for (int i = 0; i < jobs.Count; i++)
                 {
                     var job = jobs[i];
-                    Console.WriteLine($"{i + 1}. {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}");
+                    Console.WriteLine($"{i + 1}. {job.Name} | {job.Type} | {job.SourceDir} -> {job.TargetDir}");
                 }
             }
         }

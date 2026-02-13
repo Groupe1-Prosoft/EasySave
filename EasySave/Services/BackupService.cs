@@ -1,320 +1,163 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
-using System.Text.Json;
+using System.IO;
 using System.Linq;
-using EasySave.Models;
 using EasyLog;
-using EasySave.Localization;
+using EasySave.Models;
 
 namespace EasySave.Services
 {
     /// <summary>
-    /// Manages backup jobs, state tracking, and file transfer logging.
+    /// Manages backup execution and logging.
     /// </summary>
     public class BackupService
     {
-        /// <summary>
-        /// Gets or sets the in-memory list of backup jobs.
-        /// </summary>
-        public List<BackupJob> Jobs { get; set; }
-
-        private readonly ILogger _logger;
-        private readonly string _jobsFilePath;
-        private readonly string _stateFilePath;
-        private readonly LanguageManager _lang;
+        private readonly Logger logger;
+        private readonly Configuration configuration;
+        private BackupState? currentState;
 
         /// <summary>
-        /// Initializes the service, prepares AppData paths, and loads jobs.
+        /// Initializes the service with configuration.
         /// </summary>
-        public BackupService(LanguageManager lang)
+        public BackupService(Configuration configuration)
         {
-            _lang = lang;
-            string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave");
-
-            if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
-
-            _jobsFilePath = Path.Combine(appDataPath, "jobs.json");
-            _stateFilePath = Path.Combine(appDataPath, "state.json");
-
-            _logger = new EasyLog.Logger();
-            LoadJobs();
+            this.configuration = configuration;
+            logger = new Logger(configuration.LogFormat);
         }
 
         /// <summary>
-        /// Adds a job and persists it, enforcing the 5-job limit.
+        /// Executes a backup job.
         /// </summary>
-        public bool AddJob(BackupJob job)
+        public bool ExecuteJob(BackupJob job)
         {
-            if (Jobs.Count >= 5) return false;
-            Jobs.Add(job);
-            SaveJobs();
-            return true;
-        }
+            if (!job.Validate()) return false;
+            if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
 
-        /// <summary>
-        /// Deletes a job by index and persists the updated list.
-        /// </summary>
-        public bool DeleteJob(int index)
-        {
-            int realIndex = index - 1;
-            if (realIndex >= 0 && realIndex < Jobs.Count)
-            {
-                Jobs.RemoveAt(realIndex);
-                SaveJobs();
-                return true;
-            }
-            return false;
-        }
+            var files = GetFileList(job.SourceDir!);
+            long totalSize = CalculateTotalSize(files);
 
-        /// <summary>
-        /// Writes jobs.json with formatted JSON.
-        /// </summary>
-        private void SaveJobs()
-        {
-            try
-            {
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(_jobsFilePath, JsonSerializer.Serialize(Jobs, options));
-            }
-            catch (Exception ex) { Console.WriteLine($"Error saving jobs: {ex.Message}"); }
-        }
-
-        /// <summary>
-        /// Loads jobs.json into the in-memory list.
-        /// </summary>
-        private void LoadJobs()
-        {
-            try
-            {
-                if (File.Exists(_jobsFilePath))
-                {
-                    string json = File.ReadAllText(_jobsFilePath);
-                    Jobs = JsonSerializer.Deserialize<List<BackupJob>>(json) ?? new List<BackupJob>();
-                }
-                else { Jobs = new List<BackupJob>(); }
-            }
-            catch { Jobs = new List<BackupJob>(); }
-        }
-
-        /// <summary>
-        /// Executes a job, updates state.json in real time, and logs file transfers.
-        /// </summary>
-        public void ExecuteJob(BackupJob job)
-        {
-            if (!Directory.Exists(job.SourceDirectory))
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(_lang.GetText("SourceNotFound", job.SourceDirectory));
-                Console.ResetColor();
-                return;
-            }
-            if (!Directory.Exists(job.TargetDirectory)) Directory.CreateDirectory(job.TargetDirectory);
-
-            var state = new BackupState
+            currentState = new BackupState
             {
                 JobName = job.Name,
                 Timestamp = DateTime.Now,
                 State = "ACTIF",
-                SourceDirectory = job.SourceDirectory,
-                TargetDirectory = job.TargetDirectory
+                TotalFiles = files.Count,
+                TotalSize = totalSize,
+                FilesRemaining = files.Count,
+                SizeRemaining = totalSize,
+                Progression = 0
             };
 
-            CalculateTotals(job.SourceDirectory, state);
+            currentState.UpdateStateJSON();
 
-            UpdateStateFile(state);
-
-            Console.WriteLine(_lang.GetText("Processing", job.Name, state.TotalFiles));
-
-            CopyDirectory(job.SourceDirectory, job.TargetDirectory, job, state);
-
-            state.State = "NON ACTIF";
-            state.CurrentSourceFile = "";
-            state.CurrentTargetFile = "";
-
-            state.Timestamp = DateTime.Now;
-            UpdateStateFile(state);
-        }
-
-        /// <summary>
-        /// Computes total file count and size for the given source path.
-        /// </summary>
-        private void CalculateTotals(string path, BackupState state)
-        {
-            try
+            int processed = 0;
+            foreach (var file in files)
             {
-                DirectoryInfo dir = new DirectoryInfo(path);
+                string relative = Path.GetRelativePath(job.SourceDir!, file);
+                string targetFile = Path.Combine(job.TargetDir!, relative);
 
-                var files = dir.GetFiles("*", SearchOption.AllDirectories);
-
-                state.TotalFiles = files.Length;
-                state.FilesRemaining = files.Length;
-
-                long size = 0;
-                foreach (var f in files) size += f.Length;
-
-                state.TotalSize = size;
-                state.SizeRemaining = size;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error calculating totals: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Recursively copies directories and logs each file transfer.
-        /// Supports differential copy behavior.
-        /// </summary>
-        private void CopyDirectory(string sourceDir, string targetDir, BackupJob job, BackupState state)
-        {
-            DirectoryInfo dir = new DirectoryInfo(sourceDir);
-
-            foreach (FileInfo file in dir.GetFiles())
-            {
-                string targetFilePath = Path.Combine(targetDir, file.Name);
-
-                if (job.Type == BackupType.Differential && File.Exists(targetFilePath))
+                if (job.Type == BackupType.Differential && File.Exists(targetFile))
                 {
-                    FileInfo destFile = new FileInfo(targetFilePath);
-
-                    if (file.LastWriteTime <= destFile.LastWriteTime)
+                    if (File.GetLastWriteTimeUtc(file) <= File.GetLastWriteTimeUtc(targetFile))
                     {
-                        state.FilesRemaining--;
-                        state.SizeRemaining -= file.Length;
-                        if (state.SizeRemaining < 0) state.SizeRemaining = 0;
-
-                        state.Progression = state.TotalFiles > 0
-                            ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
-                            : 0;
-
-                        state.Timestamp = DateTime.Now;
-
-                        UpdateStateFile(state);
-
+                        processed++;
+                        currentState.FilesRemaining--;
+                        currentState.SizeRemaining -= new FileInfo(file).Length;
+                        UpdateProgress(processed, files.Count);
                         continue;
                     }
                 }
 
-                long startTime = DateTime.Now.Ticks;
+                long time = CopyFile(file, targetFile);
 
-                state.CurrentSourceFile = file.FullName;
-                state.CurrentTargetFile = targetFilePath;
-                state.State = "ACTIF";
-
-                state.Timestamp = DateTime.Now;
-
-                UpdateStateFile(state);
-
-                try
+                var data = new LogData
                 {
-                    file.CopyTo(targetFilePath, true);
-                    long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
+                    Timestamp = DateTime.Now,
+                    Name = job.Name ?? string.Empty,
+                    Source = file,
+                    Target = targetFile,
+                    Size = new FileInfo(file).Length,
+                    TransferTime = time
+                };
 
-                    var logData = new LogData
-                    {
-                        Name = job.Name,
-                        Source = ToUncPath(file.FullName),
-                        Target = ToUncPath(targetFilePath),
-                        Size = file.Length,
-                        TransferTime = timeMs,
-                        Timestamp = DateTime.Now
-                    };
-                    _logger.WriteLog(logData);
-                    Console.WriteLine(_lang.GetText("FileCopied", file.Name));
-                }
-                catch (Exception ex)
-                {
-                    long timeMs = (DateTime.Now.Ticks - startTime) / 10000;
+                logger.WriteLog(data);
 
-                    var logData = new LogData
-                    {
-                        Name = job.Name,
-                        Source = ToUncPath(file.FullName),
-                        Target = ToUncPath(targetFilePath),
-                        Size = file.Length,
-                        TransferTime = -timeMs,
-                        Timestamp = DateTime.Now
-                    };
-                    _logger.WriteLog(logData);
-                    Console.WriteLine(_lang.GetText("CopyError", ex.Message));
-                }
-
-                state.FilesRemaining--;
-                state.SizeRemaining -= file.Length;
-
-                state.Progression = state.TotalFiles > 0
-                    ? (double)(state.TotalFiles - state.FilesRemaining) / state.TotalFiles * 100
-                    : 0;
-
-                state.Timestamp = DateTime.Now;
-                UpdateStateFile(state);
-
-                if (state.SizeRemaining < 0) state.SizeRemaining = 0;
+                processed++;
+                currentState.FilesRemaining--;
+                currentState.SizeRemaining -= data.Size;
+                UpdateProgress(processed, files.Count);
             }
 
-            foreach (DirectoryInfo subDir in dir.GetDirectories())
-            {
-                string newTargetDir = Path.Combine(targetDir, subDir.Name);
+            currentState.State = "NON ACTIF";
+            currentState.Timestamp = DateTime.Now;
+            currentState.UpdateStateJSON();
 
-                if (!Directory.Exists(newTargetDir)) Directory.CreateDirectory(newTargetDir);
-                CopyDirectory(subDir.FullName, newTargetDir, job, state);
-            }
+            return true;
         }
 
         /// <summary>
-        /// Writes or updates the job entry in state.json.
+        /// Executes several jobs sequentially by their identifiers.
         /// </summary>
-        private void UpdateStateFile(BackupState currentState)
+        public bool ExecuteSequential(List<int> ids)
+        {
+            bool success = true;
+            var jobs = configuration.GetJobs();
+
+            foreach (int id in ids)
+            {
+                var job = jobs.FirstOrDefault(j => j.Id == id);
+                if (job == null)
+                {
+                    success = false;
+                    continue;
+                }
+
+                if (!ExecuteJob(job))
+                {
+                    success = false;
+                }
+            }
+
+            return success;
+        }
+
+        private long CopyFile(string source, string dest)
         {
             try
             {
-                List<BackupState> states = new List<BackupState>();
-
-                if (File.Exists(_stateFilePath))
-                {
-                    string json = File.ReadAllText(_stateFilePath);
-                    if (!string.IsNullOrWhiteSpace(json))
-                    {
-                        states = JsonSerializer.Deserialize<List<BackupState>>(json) ?? new List<BackupState>();
-                    }
-                }
-
-                var existingState = states.FirstOrDefault(s => s.JobName == currentState.JobName);
-                if (existingState != null)
-                {
-                    states.Remove(existingState);
-                }
-
-                states.Add(currentState);
-
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(_stateFilePath, JsonSerializer.Serialize(states, options));
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                long start = DateTime.Now.Ticks;
+                File.Copy(source, dest, true);
+                return (DateTime.Now.Ticks - start) / 10000;
             }
             catch
             {
+                long start = DateTime.Now.Ticks;
+                return -((DateTime.Now.Ticks - start) / 10000);
             }
         }
 
-        /// <summary>
-        /// Converts a local path to a UNC-like path using the machine name.
-        /// </summary>
-        private string ToUncPath(string path)
+        private List<string> GetFileList(string directory)
         {
-            if (string.IsNullOrEmpty(path))
-                return path;
-            if (path.StartsWith(@"\\"))
+            return Directory.GetFiles(directory, "*", SearchOption.AllDirectories).ToList();
+        }
 
-                return path;
-
-            string machineName = Environment.MachineName;
-
-            if (path.Length >= 2 && path[1] == ':')
+        private long CalculateTotalSize(List<string> files)
+        {
+            long size = 0;
+            foreach (var file in files)
             {
-                return $@"\\{machineName}\{path[0]}${path.Substring(2)}";
+                size += new FileInfo(file).Length;
             }
+            return size;
+        }
 
-            return $@"\\{machineName}{path}";
+        private void UpdateProgress(int current, int total)
+        {
+            if (currentState == null) return;
+            currentState.Progression = total == 0 ? 0 : (int)((current * 100.0) / total);
+            currentState.Timestamp = DateTime.Now;
+            currentState.UpdateStateJSON();
         }
     }
 }

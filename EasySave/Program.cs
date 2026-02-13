@@ -16,8 +16,7 @@ namespace EasySave
         /// <summary>
         /// Provides UI localization.
         /// </summary>
-        private static LanguageManager _languageManager = new LanguageManager();
-
+        private static LanguageManager _languageManager = LanguageManager.Instance;
         /// <summary>
         /// Provides job management and backup execution.
         /// </summary>

@@ -224,3 +224,10 @@ Click the link below to view the design documentation:
 Access the compiled version for evaluation below:
 
 * [Download Deliverable 2 (GUI - v1.0)](../../releases/tag/v1.0)
+
+### Release (Download)
+
+Access the compiled version for evaluation below:
+
+- [**Download Deliverable v1.1 (XML/JSON Logs)**](https://github.com/Groupe1-Prosoft/EasySave/releases/tag/v1.1)
+- [Download Deliverable v1.0 (Old version)](https://github.com/Groupe1-Prosoft/EasySave/releases/tag/v1.0)

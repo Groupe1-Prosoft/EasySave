@@ -1,70 +1,47 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 
 namespace EasyLog
 {
     public class Logger : ILogger
     {
-        private string _logFilePath;
+        private string _logDirectory;
+        private string _logFormat; // Format for the logs (xml or json)
 
-        public Logger()
+        // Constructor accepting the log directory and the format
+        public Logger(string logDirectory, string logFormat)
         {
-            // Set the file path when the logger starts
-            _logFilePath = CreateDailyLogFile();
+            _logDirectory = logDirectory;
+            // Force the format to lowercase to avoid errors
+            _logFormat = logFormat.ToLower();
+
+            // Create the directory if it does not exist
+            if (!Directory.Exists(_logDirectory))
+            {
+                Directory.CreateDirectory(_logDirectory);
+            }
         }
 
-        // Generates the daily log file path (e.g., 2024-02-04.json)
-        public string CreateDailyLogFile()
+        public void WriteLog(LogData logData)
         {
-            string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs");
-
-            // Create directory if it does not exist
-            if (!Directory.Exists(appDataPath))
+            // Choose the strategy based on the format
+            if (_logFormat == "xml")
             {
-                Directory.CreateDirectory(appDataPath);
+                // XML
+                string filePath = Path.Combine(_logDirectory, "logs.xml");
+                string content = logData.ToXML();
+
+                // Append content to the file
+                File.AppendAllText(filePath, content + Environment.NewLine);
             }
-
-            string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".json";
-            return Path.Combine(appDataPath, fileName);
-        }
-
-        public bool WriteLog(LogData data)
-        {
-            // Validation check before writing
-            if (!data.Validate()) return false;
-
-            try
+            else
             {
-                // Update path in case the date changed during execution
-                _logFilePath = CreateDailyLogFile();
+                // JSON 
+                string filePath = Path.Combine(_logDirectory, "logs.json");
+                string content = logData.ToJSON();
 
-                List<LogData> logs = new List<LogData>();
-
-                // Read existing logs if the file exists
-                if (File.Exists(_logFilePath))
-                {
-                    string existingJson = File.ReadAllText(_logFilePath);
-                    if (!string.IsNullOrWhiteSpace(existingJson))
-                    {
-                        logs = JsonSerializer.Deserialize<List<LogData>>(existingJson) ?? new List<LogData>();
-                    }
-                }
-
-                // Add the new log entry
-                logs.Add(data);
-
-                // Write everything back to the file with formatting
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(_logFilePath, JsonSerializer.Serialize(logs, options));
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Logger Error] {ex.Message}");
-                return false;
+                // Append content to the file
+                File.AppendAllText(filePath, content + Environment.NewLine);
             }
         }
     }

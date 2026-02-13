@@ -1,31 +1,37 @@
 ﻿using System;
-using System.Text.Json;
+using System.IO;
+using System.Text.Json;        // Library for JSON
+using System.Xml.Serialization;  // Library for XML
 
 namespace EasyLog
 {
     public class LogData
     {
-        // Properties defined in the class diagram
-        public string? Name { get; set; }
-        public string? Source { get; set; }
-        public string? Target { get; set; }
+
+        public DateTime Timestamp { get; set; }
+        public string Name { get; set; }
+        public string Source { get; set; }
+        public string Target { get; set; }
         public long Size { get; set; }
         public long TransferTime { get; set; }
-        public DateTime Timestamp { get; set; }
 
-        // Method to convert the object to a JSON string
+
+        // Method to transform LogData into JSON
         public string ToJSON()
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
             return JsonSerializer.Serialize(this, options);
         }
 
-        // Method to validate that essential data is present
-        public bool Validate()
+        // Method to transform LogData into XML
+        public string ToXML()
         {
-            return !string.IsNullOrWhiteSpace(Name)
-                && !string.IsNullOrWhiteSpace(Source)
-                && !string.IsNullOrWhiteSpace(Target);
+            var serializer = new XmlSerializer(typeof(LogData));
+            using (var writer = new StringWriter())
+            {
+                serializer.Serialize(writer, this);
+                return writer.ToString();
+            }
         }
     }
 }

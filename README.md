@@ -179,10 +179,10 @@ main          ─────●────────────────
 develop       ─────●────●────●──────●────────────► (integration)
                         │    ▲      ▲
                         │    │      │ merge
-feat/xxx   ──────────●───────●      │
+feat/xxx   ─────────────●────●      │
 feat/yyy   ─────────────────────────●
 ```
-1. **Branch types:** *
+1. **Branch types:**
 main: Stable and deliverable version (tags: v1.0, v2.0, etc.)
 develop: Common development version
 feat/*: Working branch for each task

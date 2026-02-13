@@ -1,27 +1,34 @@
 ﻿using System;
+using System.IO;
 using System.Text.Json;
+using System.Xml.Serialization;
 
 namespace EasyLog
 {
     /// <summary>
-    /// Represents one log record of a file transfer.
+    /// Represents a log entry for a file transfer.
     /// </summary>
     public class LogData
     {
         /// <summary>
-        /// Gets or sets the backup job name.
+        /// Gets or sets the timestamp of the log.
         /// </summary>
-        public string? Name { get; set; }
+        public DateTime Timestamp { get; set; }
 
         /// <summary>
-        /// Gets or sets the source file path (UNC).
+        /// Gets or sets the job name.
         /// </summary>
-        public string? Source { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the target file path (UNC).
+        /// Gets or sets the source file path.
         /// </summary>
-        public string? Target { get; set; }
+        public string Source { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the target file path.
+        /// </summary>
+        public string Target { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the file size in bytes.
@@ -29,17 +36,12 @@ namespace EasyLog
         public long Size { get; set; }
 
         /// <summary>
-        /// Gets or sets the transfer time in milliseconds (negative on error).
+        /// Gets or sets the transfer time in milliseconds.
         /// </summary>
         public long TransferTime { get; set; }
 
         /// <summary>
-        /// Gets or sets the log timestamp.
-        /// </summary>
-        public DateTime Timestamp { get; set; }
-
-        /// <summary>
-        /// Serializes the current log entry to JSON.
+        /// Serializes the log entry to JSON.
         /// </summary>
         public string ToJSON()
         {
@@ -48,13 +50,14 @@ namespace EasyLog
         }
 
         /// <summary>
-        /// Validates that required fields are present.
+        /// Serializes the log entry to XML.
         /// </summary>
-        public bool Validate()
+        public string ToXML()
         {
-            return !string.IsNullOrWhiteSpace(Name)
-                && !string.IsNullOrWhiteSpace(Source)
-                && !string.IsNullOrWhiteSpace(Target);
+            var serializer = new XmlSerializer(typeof(LogData));
+            using var writer = new StringWriter();
+            serializer.Serialize(writer, this);
+            return writer.ToString();
         }
     }
 }

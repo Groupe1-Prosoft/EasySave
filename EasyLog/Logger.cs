@@ -2,72 +2,92 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Xml.Serialization;
 
 namespace EasyLog
 {
     /// <summary>
-    /// Writes JSON logs to a daily file under AppData.
+    /// Writes JSON or XML logs to a daily file.
     /// </summary>
     public class Logger : ILogger
     {
-        private string _logFilePath;
+        private string logFilePath;
+        private string logFormat;
 
         /// <summary>
-        /// Initializes the logger and resolves the daily file path.
+        /// Initializes the logger with the desired log format.
         /// </summary>
-        public Logger()
+        public Logger(string logFormat)
         {
-            _logFilePath = CreateDailyLogFile();
+            this.logFormat = string.Equals(logFormat, "xml", StringComparison.OrdinalIgnoreCase) ? "xml" : "json";
+            logFilePath = CreateDailyLogFile();
         }
 
         /// <summary>
-        /// Creates the daily log file path (yyyy-MM-dd.json).
+        /// Creates the daily log file path based on the current format.
         /// </summary>
         public string CreateDailyLogFile()
         {
-            string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs");
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string logsPath = Path.Combine(appData, "EasySave", "Logs");
+            Directory.CreateDirectory(logsPath);
 
-            if (!Directory.Exists(appDataPath))
-            {
-                Directory.CreateDirectory(appDataPath);
-            }
-
-            string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".json";
-            return Path.Combine(appDataPath, fileName);
+            string extension = logFormat == "xml" ? "xml" : "json";
+            string fileName = DateTime.Now.ToString("yyyy-MM-dd") + "." + extension;
+            return Path.Combine(logsPath, fileName);
         }
 
         /// <summary>
-        /// Appends a log entry to the daily JSON log file.
+        /// Writes a log entry to the daily file.
         /// </summary>
         public bool WriteLog(LogData data)
         {
-            if (!data.Validate()) return false;
-
             try
             {
-                _logFilePath = CreateDailyLogFile();
+                logFilePath = CreateDailyLogFile();
 
-                List<LogData> logs = new List<LogData>();
-
-                if (File.Exists(_logFilePath))
+                if (logFormat == "xml")
                 {
-                    string existingJson = File.ReadAllText(_logFilePath);
-                    if (!string.IsNullOrWhiteSpace(existingJson))
+                    List<LogData> logs = new();
+
+                    if (File.Exists(logFilePath))
                     {
-                        logs = JsonSerializer.Deserialize<List<LogData>>(existingJson) ?? new List<LogData>();
+                        using var read = File.OpenRead(logFilePath);
+                        if (read.Length > 0)
+                        {
+                            var serializer = new XmlSerializer(typeof(List<LogData>));
+                            logs = serializer.Deserialize(read) as List<LogData> ?? new List<LogData>();
+                        }
+                    }
+
+                    logs.Add(data);
+
+                    using var write = File.Create(logFilePath);
+                    var xmlSerializer = new XmlSerializer(typeof(List<LogData>));
+                    xmlSerializer.Serialize(write, logs);
+                    return true;
+                }
+
+                List<LogData> jsonLogs = new();
+
+                if (File.Exists(logFilePath))
+                {
+                    string existing = File.ReadAllText(logFilePath);
+                    if (!string.IsNullOrWhiteSpace(existing))
+                    {
+                        jsonLogs = JsonSerializer.Deserialize<List<LogData>>(existing) ?? new List<LogData>();
                     }
                 }
 
-                logs.Add(data);
+                jsonLogs.Add(data);
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(_logFilePath, JsonSerializer.Serialize(logs, options));
+                File.WriteAllText(logFilePath, JsonSerializer.Serialize(jsonLogs, options));
 
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"[Logger Error] {ex.Message}");
                 return false;
             }
         }

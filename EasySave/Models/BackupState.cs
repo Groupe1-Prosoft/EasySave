@@ -1,9 +1,12 @@
 ﻿using System;
+using System.IO;
+using System.Text.Json;
+using System.Xml.Serialization;
 
 namespace EasySave.Models
 {
     /// <summary>
-    /// Represents runtime progress data stored in state.json.
+    /// Represents runtime progress data stored in state files.
     /// </summary>
     public class BackupState
     {
@@ -21,16 +24,6 @@ namespace EasySave.Models
         /// Gets or sets the job state (e.g., ACTIF, NON ACTIF).
         /// </summary>
         public string? State { get; set; }
-
-        /// <summary>
-        /// Gets or sets the source directory for context.
-        /// </summary>
-        public string? SourceDirectory { get; set; }
-
-        /// <summary>
-        /// Gets or sets the target directory for context.
-        /// </summary>
-        public string? TargetDirectory { get; set; }
 
         /// <summary>
         /// Gets or sets the total number of eligible files.
@@ -55,7 +48,7 @@ namespace EasySave.Models
         /// <summary>
         /// Gets or sets the progression percentage.
         /// </summary>
-        public double Progression { get; set; }
+        public int Progression { get; set; }
 
         /// <summary>
         /// Gets or sets the current source file being processed.
@@ -66,6 +59,58 @@ namespace EasySave.Models
         /// Gets or sets the current target file being processed.
         /// </summary>
         public string? CurrentTargetFile { get; set; }
+
+        /// <summary>
+        /// Writes state.json.
+        /// </summary>
+        public bool UpdateStateJSON()
+        {
+            return WriteStateFile("state.json", ToJSON());
+        }
+
+        /// <summary>
+        /// Writes state.xml.
+        /// </summary>
+        public bool UpdateStateXML()
+        {
+            return WriteStateFile("state.xml", ToXML());
+        }
+
+        /// <summary>
+        /// Serializes the state to JSON.
+        /// </summary>
+        public string ToJSON()
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            return JsonSerializer.Serialize(this, options);
+        }
+
+        /// <summary>
+        /// Serializes the state to XML.
+        /// </summary>
+        public string ToXML()
+        {
+            var serializer = new XmlSerializer(typeof(BackupState));
+            using var writer = new StringWriter();
+            serializer.Serialize(writer, this);
+            return writer.ToString();
+        }
+
+        private static bool WriteStateFile(string fileName, string content)
+        {
+            try
+            {
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string path = Path.Combine(appData, "EasySave", fileName);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, content);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// Initializes a default inactive state.

@@ -6,7 +6,7 @@
     public interface ILogger
     {
         /// <summary>
-        /// Writes a single log entry to the configured output.
+        /// Writes a log entry to the target storage.
         /// </summary>
         bool WriteLog(LogData data);
     }

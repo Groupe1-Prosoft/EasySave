@@ -1,6 +1,8 @@
 ﻿namespace EasyLog
 {
-    // Interface for the Logger (SOLID principle)
+    /// <summary>
+    /// Defines a contract for log persistence.
+    /// </summary>
     public interface ILogger
     {
         void WriteLog(LogData data);

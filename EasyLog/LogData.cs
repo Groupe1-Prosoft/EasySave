@@ -7,14 +7,12 @@ namespace EasyLog
 {
     public class LogData
     {
-
         public DateTime Timestamp { get; set; }
         public string Name { get; set; }
         public string Source { get; set; }
         public string Target { get; set; }
         public long Size { get; set; }
         public long TransferTime { get; set; }
-
 
         // Method to transform LogData into JSON
         public string ToJSON()

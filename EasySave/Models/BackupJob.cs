@@ -1,29 +1,46 @@
-﻿namespace EasySave.Models
+﻿using System.IO;
+
+namespace EasySave.Models
 {
+    /// <summary>
+    /// Defines a backup job persisted in configuration.
+    /// </summary>
     public class BackupJob
     {
-        // The name of the backup job
+        /// <summary>
+        /// Gets or sets the job identifier.
+        /// </summary>
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the job name.
+        /// </summary>
         public string? Name { get; set; }
 
-        // Path to the source directory
-        public string? SourceDirectory { get; set; }
+        /// <summary>
+        /// Gets or sets the source directory.
+        /// </summary>
+        public string? SourceDir { get; set; }
 
-        // Path to the destination directory
-        public string? TargetDirectory { get; set; }
+        /// <summary>
+        /// Gets or sets the target directory.
+        /// </summary>
+        public string? TargetDir { get; set; }
 
-        // Type of backup (Full or Differential)
+        /// <summary>
+        /// Gets or sets the backup type.
+        /// </summary>
         public BackupType Type { get; set; }
 
-        // Empty constructor needed for JSON serialization
-        public BackupJob() { }
-
-        // Constructor to initialize the job
-        public BackupJob(string name, string source, string target, BackupType type)
+        /// <summary>
+        /// Validates required job fields.
+        /// </summary>
+        public bool Validate()
         {
-            Name = name;
-            SourceDirectory = source;
-            TargetDirectory = target;
-            Type = type;
+            return !string.IsNullOrWhiteSpace(Name)
+                && !string.IsNullOrWhiteSpace(SourceDir)
+                && !string.IsNullOrWhiteSpace(TargetDir)
+                && Directory.Exists(SourceDir);
         }
     }
 }

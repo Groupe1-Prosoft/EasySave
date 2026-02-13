@@ -17,7 +17,7 @@ namespace EasySave
         /// </summary>
         public static void Main(string[] args)
         {
-            var languageManager = new LanguageManager();
+            var languageManager = LanguageManager.Instance;
             var configuration = new Configuration();
             configuration.LoadConfig();
 
@@ -231,9 +231,6 @@ namespace EasySave
 
                     default:
                         view.DisplayError(languageManager.GetText("InvalidOption"));
-                        Console.WriteLine();
-                        Console.WriteLine(languageManager.GetText("PressEnterReturn"));
-                        Console.ReadLine();
                         break;
                 }
             }

@@ -8,12 +8,13 @@
 #### A Use Case Diagram is a behavioral UML diagram that captures the functional requirements of a system by showing the interactions between users (actors) and the system's features (use cases). This diagram provides a high-level overview of what the EasySave application can do from the user's perspective. It shows that a user can create, list, execute, and delete backup jobs, as well as change the application language. It also illustrates that backup jobs can be either Full or Differential, and that executing a backup includes generating logs and updating the state file.
 
 ```mermaid
+
 ---
 config:
   layout: dagre
 ---
 flowchart LR
- subgraph S["EasySave 1.0 (Console)"]
+ subgraph S["EasySave 2.0 (Avalonia GUI)"]
     direction TB
         UC_Create(["Create Backup Job"])
         UC_List(["List Backup Jobs"])
@@ -21,17 +22,28 @@ flowchart LR
         UC_ExecSeq(["Execute Sequential Backups"])
         UC_Del(["Delete Backup Job"])
         UC_Lang(["Change Language"])
+        UC_Settings(["Manage Settings"])
         UC_Full(["Perform Full Backup"])
         UC_Diff(["Perform Differential Backup"])
         UC_Log(["Write Daily Log"])
         UC_State(["Update State File"])
+        UC_Encrypt(["Encrypt File"])
+        UC_Detect(["Detect Software"])
+        UC_LogFormat(["Choose Log Format"])
+        UC_SetExtensions(["Set Encrypted Extensions"])
+        UC_SetBusiness(["Set  Software"])
   end
-    U(("User")) --> UC_Create & UC_List & UC_Exec & UC_ExecSeq & UC_Del & UC_Lang
+    U(("User")) --> UC_Create & UC_List & UC_Exec & UC_ExecSeq & UC_Del & UC_Lang & UC_Settings
     UC_Full -. "«extend»<br/>[type = Full]" .-> UC_Exec
     UC_Diff -. "«extend»<br/>[type = Differential]" .-> UC_Exec
     UC_Exec -. "«include»" .-> UC_Log
     UC_Exec -. "«include»" .-> UC_State
+    UC_Exec -. "«include»" .-> UC_Encrypt
+    UC_Exec -. "«include»" .-> UC_Detect
     UC_ExecSeq -. "«include»" .-> UC_Exec
+    UC_Settings -. "«include»" .-> UC_LogFormat
+    UC_Settings -. "«include»" .-> UC_SetExtensions
+    UC_Settings -. "«include»" .-> UC_SetBusiness
 
      UC_Create:::caseStyle
      UC_List:::caseStyle
@@ -39,14 +51,19 @@ flowchart LR
      UC_ExecSeq:::caseStyle
      UC_Del:::caseStyle
      UC_Lang:::caseStyle
+     UC_Settings:::caseStyle
      UC_Full:::caseStyle
      UC_Diff:::caseStyle
      UC_Log:::caseStyle
      UC_State:::caseStyle
+     UC_Encrypt:::caseStyle
+     UC_Detect:::caseStyle
+     UC_LogFormat:::caseStyle
+     UC_SetExtensions:::caseStyle
+     UC_SetBusiness:::caseStyle
      U:::actorStyle
     classDef actorStyle fill:#fff,stroke:#000,stroke-width:2px
     classDef caseStyle fill:#fff,stroke:#000,stroke-width:1px,rx:20,ry:20
-
 ```
 
     
@@ -60,17 +77,23 @@ classDiagram
         +Main(args: string[])$
     }
 
-    class CommandLineService {
-        +ParseArgument(argument: string) List~int~
+    class MainWindow {
+        <<Avalonia View>>
+        -dataContext: MainViewModel
     }
 
-    class ConsoleView {
+    class MainViewModel {
+        -backupService: BackupService
+        -configuration: Configuration
         -languageManager: LanguageManager
-        +ShowMenu()
-        +SelectLogFormat() 
-        +GetInput() string
-        +ShowProgress(state: BackupState)
-        +DisplayError(message: string)
+        +Jobs: ObservableCollection~BackupJob~ «property»
+        +SelectedJob: BackupJob «property»
+        +CreateJobCommand()
+        +DeleteJobCommand()
+        +ExecuteJobCommand()
+        +ExecuteSequentialCommand()
+        +ChangeLanguageCommand()
+        +SaveSettingsCommand()
     }
 
     class LanguageManager {
@@ -85,22 +108,44 @@ classDiagram
         -jobs: List~BackupJob~
         -configFilePath: string «const»
         -logFormat: string
+        -encryptExtensions: List~string~
+        -businessSoftwareName: string
         +GetJobs() List~BackupJob~
         +AddJob(job: BackupJob) bool
         +RemoveJob(id: int) bool
         +LoadConfig() bool
         +SaveConfig() bool
+        +GetEncryptExtensions() List~string~
+        +SetEncryptExtensions(ext: List~string~)
+        +GetBusinessSoftwareName() string
+        +SetBusinessSoftwareName(name: string)
+        +GetLogFormat() string
+        +SetLogFormat(format: string)
     }
 
     class BackupService {
         -logger: Logger
         -configuration: Configuration
+        -cryptoSoftService: CryptoSoftService
+        -businessMonitor: BusinessSoftwareMonitor
         +ExecuteJob(job: BackupJob) bool
         +ExecuteSequential(ids: List~int~) bool
         -CopyFile(source: string, dest: string) long
         -GetFileList(directory: string) List~string~
         -CalculateTotalSize(files: List~string~) long
         -UpdateProgress(current: int, total: int)
+    }
+
+    class CryptoSoftService {
+        -cryptoSoftPath: string
+        +EncryptFile(filePath: string) long
+        +IsEligible(filePath: string, extensions: List~string~) bool
+    }
+
+    class BusinessSoftwareMonitor {
+        -processName: string
+        +IsRunning() bool
+        +SetProcessName(name: string)
     }
 
     class BackupState {
@@ -147,7 +192,6 @@ classDiagram
         -logFormat: string
         +WriteLog(data: LogData) bool
         +CreateDailyLogFile() string
-        
     }
 
     class LogData {
@@ -158,30 +202,34 @@ classDiagram
         +Target: string «property»
         +Size: long «property»
         +TransferTime: long «property»
+        +EncryptionTime: long «property»
         +ToJSON() string
-        +ToXML() string 
+        +ToXML() string
     }
 
-    Program *-- ConsoleView : creates
-    Program *-- BackupService : creates
-    Program ..> CommandLineService : uses
-    ConsoleView --> LanguageManager : uses
+    Program *-- MainWindow : creates
+    Program *-- MainViewModel : creates
+    MainWindow --> MainViewModel : binds to
 
-    BackupService --> Configuration : reads jobs
+    MainViewModel --> BackupService : uses
+    MainViewModel --> Configuration : uses
+    MainViewModel --> LanguageManager : uses
+
+    BackupService --> Configuration : reads config
     BackupService ..> BackupState : creates & updates
     BackupService ..> LogData : creates
     BackupService --> ILogger : calls
+    BackupService --> CryptoSoftService : uses
+    BackupService --> BusinessSoftwareMonitor : checks
 
-    Configuration *-- "1..5" BackupJob : contains
+    Configuration *-- "*" BackupJob : contains
     BackupJob --> BackupType : has type
 
     ILogger <|.. Logger : implements
-    Logger ..> LogData : writes 
+    Logger ..> LogData : writes
 ```
 
-
-
-
+ 
 ## 3. Sequence Diagram Creation backup
 
 #### Here are some sequence diagram examples (creation, execution, deletion, etc.). More sequence diagrams can be added; these are just examples.
@@ -193,68 +241,69 @@ classDiagram
 ```mermaid
 sequenceDiagram
     actor User
-    participant ConsoleView
-    participant BackupService
+    participant MainWindow
+    participant MainViewModel
     participant Configuration
     participant BackupJob
 
-    User->>ConsoleView: Select "Create backup job"
-    ConsoleView->>User: Request job details
-    User->>ConsoleView: Provide details
+    User->>MainWindow: Click "Create backup job"
+    MainWindow->>MainViewModel: CreateJobCommand()
 
-    ConsoleView->>BackupService: CreateJob()
-    BackupService->>Configuration: GetJobs()
-    Configuration-->>BackupService: List of current jobs
+    MainViewModel->>BackupJob: new BackupJob()
+    BackupJob->>BackupJob: Validate()
+    BackupJob-->>MainViewModel: Valid job
 
-    alt Less than 5 jobs
-        BackupService->>BackupJob: new BackupJob()
-        BackupJob->>BackupJob: Validate()
-        BackupJob-->>BackupService: Valid job
+    MainViewModel->>Configuration: AddJob()
+    Configuration->>Configuration: SaveConfig()
+    Configuration-->>MainViewModel: Success
 
-        BackupService->>Configuration: AddJob()
-        Configuration->>Configuration: SaveConfig()
-        Configuration-->>BackupService: Success
-
-        BackupService-->>ConsoleView: Job created
-        ConsoleView-->>User: "Job created successfully"
-    else 5 jobs already exist
-        BackupService-->>ConsoleView: Error: maximum reached
-        ConsoleView-->>User: "Maximum 5 jobs reached"
-    end
+    MainViewModel-->>MainWindow: Update Jobs list
+    MainWindow-->>User: Job displayed in list
 ```
 
 ## 4. Sequence Diagram Execution backup
 
 #### This diagram details the execution flow of a backup job. It demonstrates how the system transitions through states (ACTIVE → COMPLETED), processes each file in a loop, logs transfer information for every copied file, and continuously updates the progress displayed to the user. 
+
 ```mermaid
 sequenceDiagram
     actor User
-    participant ConsoleView
+    participant MainWindow
+    participant MainViewModel
     participant BackupService
+    participant BusinessSoftwareMonitor
+    participant CryptoSoftService
     participant BackupState
-    participant LogData
     participant ILogger
 
-    User->>ConsoleView: Execute backup job
-    ConsoleView->>BackupService: ExecuteJob()
+    User->>MainWindow: Click "Execute"
+    MainWindow->>MainViewModel: ExecuteJobCommand()
+    MainViewModel->>BackupService: ExecuteJob()
 
-    BackupService->>BackupState: new BackupState()
-    BackupService->>BackupState: UpdateStateJSON()
+    BackupService->>BusinessSoftwareMonitor: IsRunning()
 
-    loop For each file in source
-        BackupService->>BackupService: CopyFile()
-
-        BackupService->>LogData: new LogData()
+    alt Business software detected
+        BusinessSoftwareMonitor-->>BackupService: true
         BackupService->>ILogger: WriteLog()
+        BackupService-->>MainViewModel: Backup blocked
+        MainViewModel-->>MainWindow: Display error
+    else No business software
+        BusinessSoftwareMonitor-->>BackupService: false
+        BackupService->>BackupState: new BackupState()
 
-        BackupService->>BackupState: UpdateProgress()
-        BackupState->>BackupState: UpdateStateJSON()
+        loop For each file in source
+            BackupService->>BackupService: CopyFile()
+            BackupService->>CryptoSoftService: EncryptFile()
+            BackupService->>ILogger: WriteLog()
+            BackupService->>BackupState: UpdateStateJSON()
+        end
+
+        BackupService-->>MainViewModel: Backup completed
+        MainViewModel-->>MainWindow: Update status
     end
-
-    BackupService->>BackupState: UpdateStateJSON()
-    BackupService-->>ConsoleView: Backup completed
-    ConsoleView-->>User: "Backup successful"
 ```
+
+
 
 ## 5. Sequence Diagram Supression backup
 
@@ -262,21 +311,24 @@ sequenceDiagram
 ```mermaid
    sequenceDiagram
     actor User
-    participant ConsoleView
-    participant BackupService
+    participant MainWindow
+    participant MainViewModel
     participant Configuration
 
-    User->>ConsoleView: Delete job
-    ConsoleView->>User: Confirm deletion?
-    User->>ConsoleView: Yes
+    User->>MainWindow: Click "Delete job"
+    MainWindow->>MainViewModel: DeleteJobCommand()
 
-    ConsoleView->>BackupService: DeleteJob()
-    BackupService->>Configuration: RemoveJob()
+    MainViewModel->>MainWindow: Confirm deletion?
+    MainWindow->>User: Display confirmation dialog
+    User->>MainWindow: Confirm
+
+    MainWindow->>MainViewModel: Confirmed
+    MainViewModel->>Configuration: RemoveJob()
     Configuration->>Configuration: SaveConfig()
-    Configuration-->>BackupService: Job removed
-    BackupService-->>ConsoleView: Success
+    Configuration-->>MainViewModel: Job removed
 
-    ConsoleView-->>User: "Job deleted successfully"  
+    MainViewModel-->>MainWindow: Update Jobs list
+    MainWindow-->>User: Job removed from list  
 ```
 
 ## 6. Sequence Diagram switch languish
@@ -285,19 +337,19 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor User
-    participant ConsoleView
+    participant MainWindow
+    participant MainViewModel
     participant LanguageManager
 
-    User->>ConsoleView: Change language
-    ConsoleView->>User: Select language (FR/EN)
-    User->>ConsoleView: Select language
+    User->>MainWindow: Select language
+    MainWindow->>MainViewModel: ChangeLanguageCommand()
 
-    ConsoleView->>LanguageManager: SetLanguage()
+    MainViewModel->>LanguageManager: SetLanguage()
     LanguageManager->>LanguageManager: LoadTranslations()
-    LanguageManager-->>ConsoleView: Language changed
+    LanguageManager-->>MainViewModel: Language changed
 
-    ConsoleView->>ConsoleView: ShowMenu()
-    ConsoleView-->>User: Menu refreshed
+    MainViewModel-->>MainWindow: Update UI bindings
+    MainWindow-->>User: Interface refreshed
 ```
 
 ## 7. Sequence Diagram differential backup
@@ -306,13 +358,16 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor User
-    participant ConsoleView
+    participant MainWindow
+    participant MainViewModel
     participant BackupService
     participant BackupJob
+    participant CryptoSoftService
     participant ILogger
 
-    User->>ConsoleView: Execute differential backup
-    ConsoleView->>BackupService: ExecuteJob()
+    User->>MainWindow: Click "Execute differential"
+    MainWindow->>MainViewModel: ExecuteJobCommand()
+    MainViewModel->>BackupService: ExecuteJob()
 
     BackupService->>BackupJob: GetType()
     BackupJob-->>BackupService: DIFFERENTIAL
@@ -320,21 +375,23 @@ sequenceDiagram
     loop For each file in source
         BackupService->>BackupService: IsFileModified()
 
-        alt File has been modified
+        alt File modified
             BackupService->>BackupService: CopyFile()
+            BackupService->>CryptoSoftService: EncryptFile()
             BackupService->>ILogger: WriteLog()
         else File unchanged
             BackupService->>BackupService: Skip file
         end
     end
 
-    BackupService-->>ConsoleView: Backup completed
-    ConsoleView-->>User: "Differential backup done"
+    BackupService-->>MainViewModel: Backup completed
+    MainViewModel-->>MainWindow: Update status
 ```
 
 ## 8. Activity diagram
 
 #### An Activity Diagram is a behavioral UML diagram that models the workflow or business process of a system, showing the sequence of activities and decision points from start to finish. This comprehensive diagram provides a complete view of the backup execution workflow. It maps every step from job validation to completion, including decision points for backup type (full vs. differential), file comparison logic, error handling, logging operations, and progress tracking.
+
 ```mermaid
 flowchart TD
     Start([Start]) --> LoadJob[Load selected Backup Job]
@@ -344,7 +401,13 @@ flowchart TD
     ValidateJob -->|No| DisplayError[Display error message]
     DisplayError --> EndFail([End])
 
-    ValidateJob -->|Yes| SetActive[Set state to ACTIVE]
+    ValidateJob -->|Yes| CheckBusiness{Business software running?}
+
+    CheckBusiness -->|Yes| LogBlock[Log blocked attempt]
+    LogBlock --> DisplayBlocked[Display blocked message]
+    DisplayBlocked --> EndFail
+
+    CheckBusiness -->|No| SetActive[Set state to ACTIVE]
 
     SetActive --> ScanSource[Scan source directory]
 
@@ -356,12 +419,17 @@ flowchart TD
     ProcessAll --> CopyLoop
     FilterModified --> CopyLoop
 
-    CopyLoop[Copy files one by one] --> CopyResult{Copy successful?}
+    CopyLoop[Copy file] --> CopyResult{Copy successful?}
 
     CopyResult -->|No| HandleError[Log error and notify user]
     HandleError --> MoreFiles
 
-    CopyResult -->|Yes| LogFile[Log transfer details]
+    CopyResult -->|Yes| CheckEncrypt{File eligible for encryption?}
+
+    CheckEncrypt -->|Yes| Encrypt[Encrypt file via CryptoSoft]
+    Encrypt --> LogFile[Log transfer details]
+    CheckEncrypt -->|No| LogFile
+
     LogFile --> UpdateProgress[Update state and progress]
     UpdateProgress --> MoreFiles{More files?}
 
@@ -375,7 +443,9 @@ flowchart TD
     style EndFail fill:#f44336,color:#fff
     style EndSuccess fill:#4CAF50,color:#fff
     style ValidateJob fill:#FFE4B5
+    style CheckBusiness fill:#FFE4B5
     style CheckType fill:#FFE4B5
     style CopyResult fill:#FFE4B5
+    style CheckEncrypt fill:#FFE4B5
     style MoreFiles fill:#FFE4B5
 ```

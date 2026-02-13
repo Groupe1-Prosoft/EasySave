@@ -6,7 +6,7 @@ namespace EasySave.Localization
     /// <summary>
     /// Provides a minimal EN/FR localization layer for console UI texts.
     /// </summary>
-    public class LanguageManager
+    public sealed class LanguageManager
     {
         /// <summary>
         /// Active language code (e.g., "en" or "fr").
@@ -110,15 +110,23 @@ namespace EasySave.Localization
             ["CopyError"] = "Erreur copie : {0}",
         };
 
+
+        private static readonly Lazy<LanguageManager> _instance = new(() => new LanguageManager());
+
+        /// <summary>
+        /// Gets the single shared instance of LanguageManager.
+        /// </summary>
+        public static LanguageManager Instance => _instance.Value;
+
         /// <summary>
         /// Gets the current language code.
         /// </summary>
         public string CurrentLanguage => _currentLanguage;
 
         /// <summary>
-        /// Initializes with English as default language.
+        /// Private constructor — use Instance instead.
         /// </summary>
-        public LanguageManager()
+        private LanguageManager()
         {
             _currentLanguage = "en";
             _translations = EnglishTranslations;

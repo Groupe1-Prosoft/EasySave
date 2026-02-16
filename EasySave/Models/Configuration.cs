@@ -15,6 +15,25 @@ namespace EasySave.Models
         private readonly List<BackupJob> jobs = new();
         private string logFormat = "json";
 
+        private string businessSoftwareName = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the name of the business software to monitor.
+        /// </summary>
+
+        public string GetBusinessSoftwareName()
+
+        {
+            return businessSoftwareName;
+        }
+
+        public void SetBusinessSoftwareName(string name)
+        {
+            businessSoftwareName = name;
+        }
+
+
+
         /// <summary>
         /// Gets or sets the log format.
         /// </summary>
@@ -76,6 +95,8 @@ namespace EasySave.Models
                 jobs.Clear();
                 if (data?.Jobs != null) jobs.AddRange(data.Jobs);
                 logFormat = string.IsNullOrWhiteSpace(data?.LogFormat) ? "json" : data.LogFormat.ToLower();
+                businessSoftwareName = data?.BusinessSoftwareName ?? string.Empty;
+
 
                 return true;
             }
@@ -98,8 +119,10 @@ namespace EasySave.Models
                 var data = new ConfigurationData
                 {
                     Jobs = jobs,
-                    LogFormat = logFormat
+                    LogFormat = logFormat,
+                    BusinessSoftwareName = businessSoftwareName
                 };
+
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 File.WriteAllText(path, JsonSerializer.Serialize(data, options));
@@ -121,6 +144,8 @@ namespace EasySave.Models
         {
             public List<BackupJob> Jobs { get; set; } = new();
             public string LogFormat { get; set; } = "json";
+            public string BusinessSoftwareName { get; set; } = string.Empty;
+
         }
     }
 }

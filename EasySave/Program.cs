@@ -102,11 +102,7 @@ namespace EasySave
                             Type = type
                         };
 
-                        if (!configuration.AddJob(newJob))
-                        {
-                            view.DisplayError(languageManager.GetText("JobLimitReached"));
-                        }
-                        else
+                        if(configuration.AddJob(newJob))
                         {
                             Console.ForegroundColor = ConsoleColor.Green;
                             Console.WriteLine(languageManager.GetText("JobCreated"));

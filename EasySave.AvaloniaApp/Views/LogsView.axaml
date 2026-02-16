@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EasySave.AvaloniaApp.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="EasySave.AvaloniaApp.Views.LogsView"
+             x:DataType="vm:LogsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#6366F1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4F46E5"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel Margin="32,24">
+
+        <!-- Header -->
+        <StackPanel DockPanel.Dock="Top" Spacing="16" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding Loc[LogsTitle]}" FontSize="24" FontWeight="Bold" Foreground="#1E1E1E"/>
+                <Button Grid.Column="1" Classes="primary" Content="{Binding Loc[BtnRefresh]}"
+                        Command="{Binding LoadLogsCommand}"/>
+            </Grid>
+
+            <!-- Status message -->
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#94A3B8" FontStyle="Italic"
+                       IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <!-- Log Table -->
+        <Border Background="White" CornerRadius="8" BoxShadow="0 1 3 0 #1A000000"
+                ClipToBounds="True">
+            <DataGrid ItemsSource="{Binding Logs}"
+                      x:CompileBindings="False"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserReorderColumns="True"
+                      CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
+                      GridLinesVisibility="Horizontal"
+                      BorderThickness="0"
+                      HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Date" Binding="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Width="160"/>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
+                    <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="*"/>
+                    <DataGridTextColumn Header="Target" Binding="{Binding Target}" Width="*"/>
+                    <DataGridTextColumn Header="Size (B)" Binding="{Binding Size}" Width="90"/>
+                    <DataGridTextColumn Header="Transfer (ms)" Binding="{Binding TransferTime}" Width="100"/>
+                    <DataGridTextColumn Header="Encrypt (ms)" Binding="{Binding EncryptionTime}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+    </DockPanel>
+</UserControl>

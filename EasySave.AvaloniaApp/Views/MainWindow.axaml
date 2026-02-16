@@ -1,364 +1,155 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:EasySave.AvaloniaApp.ViewModels"
-        xmlns:models="using:EasySave.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
         x:Class="EasySave.AvaloniaApp.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="EasySave V2.0"
-        WindowStartupLocation="CenterScreen"
-        Background="#F9FAFB"
-        TransparencyLevelHint="Mica"
+        Title="EasySave"
+        MinWidth="900" MinHeight="600"
+        Width="1100" Height="700"
+        Background="#FAFAFA"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="NoChrome"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        MinWidth="850" MinHeight="650">
+        ExtendClientAreaChromeHints="PreferSystemChrome"
+        ExtendClientAreaTitleBarHeightHint="40">
 
-    <Design.DataContext>
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+	<Window.Styles>
+		<!-- Nav button base style -->
+		<Style Selector="Button.nav-btn">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="#64748B"/>
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="HorizontalContentAlignment" Value="Left"/>
+			<Setter Property="Padding" Value="14,10"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Margin" Value="6,2"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+		<Style Selector="Button.nav-btn:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#EDE9FE"/>
+			<Setter Property="Foreground" Value="#6366F1"/>
+		</Style>
+		<Style Selector="Button.nav-btn.active">
+			<Setter Property="Background" Value="#EDE9FE"/>
+			<Setter Property="Foreground" Value="#6366F1"/>
+		</Style>
+		<Style Selector="Button.nav-btn.active /template/ ContentPresenter">
+			<Setter Property="Background" Value="#EDE9FE"/>
+			<Setter Property="Foreground" Value="#6366F1"/>
+		</Style>
 
-    <Window.Styles>
-        <StyleInclude Source="avares://Avalonia.Themes.Fluent/FluentTheme.xaml"/>
-        
-        <Style Selector="Button.inlineBrowse">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="Margin" Value="0,0,4,0"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Foreground" Value="#6B7280"/>
-        </Style>
-        <Style Selector="Button.inlineBrowse:pointerover /template/ ContentPresenter">
-             <Setter Property="Background" Value="#E5E7EB"/>
-             <Setter Property="Foreground" Value="#111827"/>
-        </Style>
+		<!-- Lang button style -->
+		<Style Selector="Button.lang-btn">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="#64748B"/>
+			<Setter Property="Padding" Value="8,4"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="MinWidth" Value="32"/>
+		</Style>
+		<Style Selector="Button.lang-btn:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#EDE9FE"/>
+			<Setter Property="Foreground" Value="#6366F1"/>
+		</Style>
+		<Style Selector="Button.lang-btn.active">
+			<Setter Property="Background" Value="#6366F1"/>
+			<Setter Property="Foreground" Value="White"/>
+		</Style>
+		<Style Selector="Button.lang-btn.active /template/ ContentPresenter">
+			<Setter Property="Background" Value="#6366F1"/>
+			<Setter Property="Foreground" Value="White"/>
+		</Style>
+	</Window.Styles>
 
-        <Style Selector="Button.primary">
-            <Setter Property="Background" Value="#6366F1"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="BorderThickness" Value="0"/>
-             <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.2"/>
-                </Transitions>
-            </Setter>
-        </Style>
-        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4F46E5"/>
-        </Style>
+	<DockPanel>
+		<!-- Title Bar -->
+		<Border DockPanel.Dock="Top" Background="#FAFAFA" Height="40"
+                IsHitTestVisible="True" Name="TitleBar">
+			<Grid ColumnDefinitions="Auto,*,Auto">
+				<!-- Logo + Title -->
+				<StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center">
+					<Border Background="#6366F1" CornerRadius="6" Padding="6,3" Margin="0,0,8,0">
+						<TextBlock Text="ES" Foreground="White" FontWeight="Bold" FontSize="13"/>
+					</Border>
+					<TextBlock Text="EasySave" FontWeight="SemiBold" FontSize="14" Foreground="#1E1E1E"
+                               VerticalAlignment="Center"/>
+				</StackPanel>
 
-        <Style Selector="Button.secondary">
-             <Setter Property="Background" Value="White"/>
-             <Setter Property="Foreground" Value="#374151"/>
-             <Setter Property="CornerRadius" Value="12"/>
-             <Setter Property="Padding" Value="12,8"/>
-             <Setter Property="BorderBrush" Value="#E5E7EB"/>
-             <Setter Property="BorderThickness" Value="1"/>
-             <Setter Property="FontWeight" Value="Medium"/>
-        </Style>
-        <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#F3F4F6"/>
-        </Style>
-        
-        <Style Selector="Button.sidebarToggle">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#111827"/>
-            <Setter Property="Padding" Value="8"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-        </Style>
-        <Style Selector="Button.sidebarToggle:pointerover /template/ ContentPresenter">
-             <Setter Property="Background" Value="#E5E7EB"/>
-        </Style>
+				<!-- Language Switcher -->
+				<StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,140,0"
+                            VerticalAlignment="Center" Spacing="4">
+					<Button Classes="lang-btn"
+                            Command="{Binding SwitchLanguageCommand}"
+                            CommandParameter="fr" Content="FR"/>
+					<Button Classes="lang-btn"
+                            Command="{Binding SwitchLanguageCommand}"
+                            CommandParameter="en" Content="EN"/>
+				</StackPanel>
+			</Grid>
+		</Border>
 
-        <Style Selector="Button.sidebarLink">
-             <Setter Property="Background" Value="Transparent"/>
-             <Setter Property="Foreground" Value="#6B7280"/>
-             <Setter Property="CornerRadius" Value="10"/>
-             <Setter Property="HorizontalAlignment" Value="Stretch"/>
-             <Setter Property="FontWeight" Value="Medium"/>
-             <Setter Property="Padding" Value="12,10"/>
-             <Setter Property="BorderThickness" Value="0"/>
-             <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        </Style>
-        <Style Selector="Button.sidebarLink:pointerover /template/ ContentPresenter">
-             <Setter Property="Background" Value="#E5E7EB"/>
-             <Setter Property="Foreground" Value="#111827"/>
-        </Style>
-        <Style Selector="Button.sidebarLink.active">
-             <Setter Property="Background" Value="#E0E7FF"/>
-             <Setter Property="Foreground" Value="#4F46E5"/>
-             <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
+		<!-- SplitView -->
+		<SplitView IsPaneOpen="{Binding IsPaneOpen}"
+                   DisplayMode="CompactInline"
+                   CompactPaneLength="56"
+                   OpenPaneLength="200"
+                   PaneBackground="#F3F0FF">
 
-        <Style Selector="ListBoxItem">
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="0,0,0,16"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Border Background="White" 
-                            CornerRadius="16" 
-                            Padding="20"
-                            BorderBrush="#F3F4F6"
-                            BorderThickness="1"
-                            BoxShadow="0 1 3 -1 #1A000000">
-                        <ContentPresenter Content="{TemplateBinding Content}"
-                                          ContentTemplate="{TemplateBinding ContentTemplate}"
-                                          HorizontalContentAlignment="Stretch"/>
-                    </Border>
-                </ControlTemplate>
-            </Setter>
-        </Style>
-        <Style Selector="ListBoxItem:selected /template/ Border#Border">
-             <Setter Property="BorderBrush" Value="#818CF8"/>
-             <Setter Property="BorderThickness" Value="2"/>
-        </Style>
+			<SplitView.Pane>
+				<DockPanel Margin="0,8">
+					<!-- Hamburger button -->
+					<Button DockPanel.Dock="Top"
+                            Classes="nav-btn"
+                            Command="{Binding TogglePaneCommand}"
+                            Margin="6,0,6,8">
+						<StackPanel Orientation="Horizontal" Spacing="12">
+							<TextBlock Text="&#9776;" FontSize="18" Width="24" TextAlignment="Center"/>
+						</StackPanel>
+					</Button>
 
-        <Style Selector="TextBox, ComboBox, Expander">
-            <Setter Property="CornerRadius" Value="10"/>
-        </Style>
-        <Style Selector="Label.formLabel">
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="#374151"/>
-            <Setter Property="Margin" Value="0,0,0,4"/>
-        </Style>
-    </Window.Styles>
+					<!-- Navigation buttons -->
+					<StackPanel DockPanel.Dock="Top" Spacing="2">
+						<Button Classes="nav-btn"
+                                Command="{Binding NavigateCommand}"
+                                CommandParameter="Home">
+							<StackPanel Orientation="Horizontal" Spacing="12">
+								<TextBlock Text="&#127968;" FontSize="16" Width="24" TextAlignment="Center"/>
+								<TextBlock Text="{Binding Loc[NavHome]}" IsVisible="{Binding IsPaneOpen}"/>
+							</StackPanel>
+						</Button>
 
-    <Grid RowDefinitions="Auto, *">
-        
-        <Grid Grid.Row="0" Height="40" Background="#F3F4F6" ColumnDefinitions="Auto, *, Auto" PointerPressed="TitleBar_PointerPressed">
-            
-            <Button Grid.Column="0" Classes="sidebarToggle" Margin="10,0,0,0" VerticalAlignment="Center" Click="BtnToggleSidebar_OnClick">
-                <TextBlock Text="☰" FontSize="18"/>
-            </Button>
-            
-            <TextBlock Grid.Column="1" Text="EasySave V2.0" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="#374151" IsHitTestVisible="False"/>
-            
-            <Panel Grid.Column="2" Width="140" Height="40"/>
-        </Grid>
+						<Button Classes="nav-btn"
+                                Command="{Binding NavigateCommand}"
+                                CommandParameter="Logs">
+							<StackPanel Orientation="Horizontal" Spacing="12">
+								<TextBlock Text="&#128203;" FontSize="16" Width="24" TextAlignment="Center"/>
+								<TextBlock Text="{Binding Loc[NavLogs]}" IsVisible="{Binding IsPaneOpen}"/>
+							</StackPanel>
+						</Button>
 
-        <SplitView Grid.Row="1"
-                   x:Name="MainSplitView"
-                   DisplayMode="Inline"
-                   IsPaneOpen="True"
-                   OpenPaneLength="250"
-                   PaneBackground="#F9FAFB">
+						<Button Classes="nav-btn"
+                                Command="{Binding NavigateCommand}"
+                                CommandParameter="Settings">
+							<StackPanel Orientation="Horizontal" Spacing="12">
+								<TextBlock Text="&#9881;" FontSize="16" Width="24" TextAlignment="Center"/>
+								<TextBlock Text="{Binding Loc[NavSettings]}" IsVisible="{Binding IsPaneOpen}"/>
+							</StackPanel>
+						</Button>
+					</StackPanel>
 
-            <SplitView.Pane>
-                <Border BorderBrush="#E5E7EB" BorderThickness="0,0,1,0">
-                    <Grid RowDefinitions="Auto, *, Auto" Margin="20,20,10,20">
-                        
-                        <StackPanel Grid.Row="0" Spacing="10" Orientation="Horizontal">
-                            <Border Background="#6366F1" CornerRadius="8" Width="36" Height="36">
-                                 <TextBlock Text="ES" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
-                            </Border>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="EasySave" FontSize="18" FontWeight="ExtraBold" Foreground="#111827"/>
-                                <TextBlock Text="ProSoft V2.0" FontSize="12" Foreground="#6B7280"/>
-                            </StackPanel>
-                        </StackPanel>
+					<!-- Spacer -->
+					<Panel/>
+				</DockPanel>
+			</SplitView.Pane>
 
-                        <StackPanel Grid.Row="1" Margin="0,40,0,0" Spacing="6">
-                            <Button Content="Tableau de Bord" Classes="sidebarLink active">
-                                <Button.ContentTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <TextBlock Text="📊"/> <TextBlock Text="{Binding}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </Button.ContentTemplate>
-                            </Button>
-                            <Button Content="Historique Logs" Classes="sidebarLink">
-                                 <Button.ContentTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <TextBlock Text="📜"/> <TextBlock Text="{Binding}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </Button.ContentTemplate>
-                            </Button>
-                             <Button Content="Paramètres" Classes="sidebarLink">
-                                 <Button.ContentTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <TextBlock Text="⚙️"/> <TextBlock Text="{Binding}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </Button.ContentTemplate>
-                            </Button>
-                        </StackPanel>
+			<!-- Page Content -->
+			<Border Background="#FAFAFA" Padding="0">
+				<ContentControl Content="{Binding CurrentPage}" Margin="0"/>
+			</Border>
 
-                        <StackPanel Grid.Row="2" Spacing="15">
-                            <Separator Background="#E5E7EB"/>
-                            
-                            <StackPanel Spacing="8">
-                                 <TextBlock Text="Langue / Language" FontWeight="Bold" FontSize="11" Foreground="#9CA3AF"/>
-                                 <Grid ColumnDefinitions="*,*, Auto" RowDefinitions="Auto, Auto">
-                                     <Button Grid.Row="0" Grid.Column="0" Content="FR" Command="{Binding ChangeLanguageCommand}" CommandParameter="fr" Classes="secondary" Margin="0,0,4,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="5"/>
-                                     <Button Grid.Row="0" Grid.Column="1" Content="EN" Command="{Binding ChangeLanguageCommand}" CommandParameter="en" Classes="secondary" Margin="4,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="5"/>
-                                     
-                                     <Button Grid.Row="0" Grid.Column="2" Margin="8,0,0,0" Classes="secondary" Padding="8,5" Click="BtnReloadUI_OnClick" ToolTip.Tip="Recharger l'interface pour appliquer la langue">
-                                         <TextBlock Text="🔄"/>
-                                     </Button>
-                                     <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="Cliquez sur 🔄 pour appliquer le changement." FontSize="10" Foreground="Gray" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                                 </Grid>
-                            </StackPanel>
-
-                            <Button Content="Sauvegarder Config" 
-                                    Command="{Binding SaveSettingsCommand}"
-                                    HorizontalAlignment="Stretch"
-                                    Classes="secondary">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                     <TextBlock Text="💾"/>
-                                     <TextBlock Text="Sauvegarder"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </SplitView.Pane>
-
-            <ScrollViewer Padding="24,24,24,50">
-                <Grid RowDefinitions="Auto, Auto, *">
-
-                    <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,24">
-                        <WrapPanel Grid.Column="0" Orientation="Vertical" Margin="0,10,10,0">
-                            <TextBlock Text="Mes Travaux" FontSize="26" FontWeight="Bold" Foreground="#111827" TextWrapping="Wrap"/>
-                            <TextBlock Text="Gérez et lancez vos sauvegardes." FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"/>
-                        </WrapPanel>
-
-                        <Button Grid.Column="1" 
-                                Command="{Binding ExecuteSequentialCommand}"
-                                Classes="primary" VerticalAlignment="Bottom" Margin="0,10,0,0">
-                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                 <TextBlock Text="▶"/>
-                                 <TextBlock Text="Tout Exécuter"/>
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-
-                    <StackPanel Grid.Row="1" Margin="0,0,0,24" Spacing="20">
-                        
-                        <Border Background="White" CornerRadius="16" Padding="16" BorderBrush="#E5E7EB" BorderThickness="1"
-                                IsEnabled="{Binding SelectedJob, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Stretch">
-                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,20,10">
-                                     <TextBlock Text="Sélection :" FontWeight="Medium" Foreground="#374151"/>
-                                     <TextBlock Text="{Binding SelectedJob.Name, FallbackValue='(Aucun)'}" FontWeight="Bold" Foreground="#6366F1" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <Button Command="{Binding ExecuteJobCommand}" Classes="secondary" Foreground="#059669" BorderBrush="#059669" Padding="10,6">
-                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                             <TextBlock Text="▶"/> <TextBlock Text="Lancer"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Command="{Binding DeleteJobCommand}" Classes="secondary" Foreground="#DC2626" BorderBrush="#DC2626" Padding="10,6">
-                                         <StackPanel Orientation="Horizontal" Spacing="6">
-                                             <TextBlock Text="🗑"/> <TextBlock Text="Supprimer"/>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </WrapPanel>
-                        </Border>
-                        
-                        <Expander Header="➕ Créer une nouvelle tâche" CornerRadius="16" Background="White" BorderBrush="#E5E7EB" HorizontalAlignment="Stretch">
-                            <StackPanel Spacing="16" Margin="0,16,0,8">
-                                <Grid ColumnDefinitions="2*, *">
-                                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                                        <Label Content="Nom de la tâche" Classes="formLabel"/>
-                                        <TextBox x:Name="NewJobNameTb" Watermark="Ex: Sauvegarde Projets"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <Label Content="Type" Classes="formLabel"/>
-                                        <ComboBox x:Name="NewJobTypeCb" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                            <ComboBoxItem>Complète</ComboBoxItem>
-                                            <ComboBoxItem>Différentielle</ComboBoxItem>
-                                        </ComboBox>
-                                    </StackPanel>
-                                </Grid>
-                                
-                                <StackPanel>
-                                    <Label Content="Dossier Source" Classes="formLabel"/>
-                                    <TextBox x:Name="NewJobSourceTb" Watermark="Chemin absolu...">
-                                        <TextBox.InnerRightContent>
-                                            <Button Classes="inlineBrowse" Click="BtnBrowseSource_OnClick" ToolTip.Tip="Parcourir...">
-                                                 <TextBlock Text="📁 Parcourir" VerticalAlignment="Center" FontSize="12"/>
-                                            </Button>
-                                        </TextBox.InnerRightContent>
-                                    </TextBox>
-                                </StackPanel>
-
-                                <StackPanel>
-                                    <Label Content="Dossier Cible" Classes="formLabel"/>
-                                    <TextBox x:Name="NewJobTargetTb" Watermark="Chemin absolu...">
-                                        <TextBox.InnerRightContent>
-                                            <Button Classes="inlineBrowse" Click="BtnBrowseTarget_OnClick" ToolTip.Tip="Parcourir...">
-                                                 <TextBlock Text="🏁 Parcourir" VerticalAlignment="Center" FontSize="12"/>
-                                            </Button>
-                                        </TextBox.InnerRightContent>
-                                    </TextBox>
-                                </StackPanel>
-
-                                <Button x:Name="BtnCreateJob"
-                                        Content="Créer la tâche" 
-                                        Classes="primary" 
-                                        HorizontalAlignment="Right"
-                                        Margin="0,10,0,0"
-                                        Click="BtnCreateJob_OnClick"/> 
-                            </StackPanel>
-                        </Expander>
-                    </StackPanel>
-
-                    <ListBox Grid.Row="2" 
-                             ItemsSource="{Binding Jobs}" 
-                             SelectedItem="{Binding SelectedJob}"
-                             Background="Transparent"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="models:BackupJob">
-                                <Grid ColumnDefinitions="Auto, *, Auto">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto" MinWidth="90"/> 
-                                    </Grid.ColumnDefinitions>
-                                    
-                                    <Border Grid.Column="0" Background="#EEF2FF" Width="42" Height="42" CornerRadius="12" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="📦" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4" Margin="0,0,16,0">
-                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="16" Foreground="#111827" TextTrimming="CharacterEllipsis"/>
-                                        <WrapPanel Orientation="Horizontal">
-                                            <Border Background="#F3F4F6" CornerRadius="6" Padding="6,2">
-                                                 <TextBlock Text="{Binding SourceDir}" Foreground="#6B7280" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="200" ToolTip.Tip="{Binding SourceDir}"/>
-                                            </Border>
-                                            <TextBlock Text="→" Foreground="#9CA3AF" Margin="8,0" VerticalAlignment="Center" FontWeight="Bold" FontSize="12"/>
-                                            <Border Background="#F3F4F6" CornerRadius="6" Padding="6,2">
-                                                 <TextBlock Text="{Binding TargetDir}" Foreground="#6B7280" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="200" ToolTip.Tip="{Binding TargetDir}"/>
-                                            </Border>
-                                        </WrapPanel>
-                                    </StackPanel>
-
-                                    <Border Grid.Column="2" Background="#E0E7FF" CornerRadius="16" Padding="12,6" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <TextBlock Text="{Binding Type}" FontWeight="SemiBold" FontSize="12" Foreground="#4F46E5" TextAlignment="Center"/>
-                                    </Border>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
-            </ScrollViewer>
-        </SplitView>
-    </Grid>
+		</SplitView>
+	</DockPanel>
 </Window>

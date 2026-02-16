@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using EasySave.Localization;
+using EasySave.AvaloniaApp.Helpers;
 using EasySave.Models;
 using EasySave.Services;
 
@@ -19,6 +15,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Instanciation de la configuration / service — adapte si votre projet expose un singleton/factory
         _configuration = new Configuration();
+        // Charger la configuration depuis le disque avant d'accéder aux jobs
+        _configuration.LoadConfig();
+
         _backupService = new BackupService(_configuration);
 
         var jobs = _configuration.GetJobs() ?? Array.Empty<BackupJob>();
@@ -31,18 +30,21 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private BackupJob? selectedJob;
 
-    // CREATE: param is BackupJob built by View (code-behind) as requested in the briefing
     [RelayCommand]
     private void CreateJob(BackupJob? job)
     {
         if (job is null) return;
 
-        // Configuration is responsible for assigning Id, etc.
-        // Méthode attendue : AddJob(BackupJob) — adaptez si le nom diffère (ex: CreateJob, SaveJob)
-        _configuration.AddJob(job);
-
-        Jobs.Add(job);
-        SaveSettings();
+        // AddJob retourne bool ; Configuration gère l'assignation d'Id et la persistance
+        var ok = _configuration.AddJob(job);
+        if (ok)
+        {
+            Jobs.Add(job);
+        }
+        else
+        {
+            // Optionnel: gérer l'erreur (affichage, log...)
+        }
     }
 
     [RelayCommand]
@@ -50,13 +52,10 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (SelectedJob is null) return;
 
-        // Confirm deletion can be implemented in the View if needed.
-        // Méthode attendue : RemoveJob(BackupJob) ou RemoveJobById(int)
-        _configuration.RemoveJob(SelectedJob);
+        // Configuration expose RemoveJob(int id)
+        _configuration.RemoveJob(SelectedJob.Id);
         Jobs.Remove(SelectedJob);
         SelectedJob = null;
-
-        SaveSettings();
     }
 
     [RelayCommand]
@@ -64,7 +63,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (SelectedJob is null) return;
 
-        // Exécution bloquante déplacée dans un Task.Run pour ne pas bloquer l'UI (conseil du briefing)
+        // Exécution dans un thread de fond pour ne pas bloquer l'UI
         await Task.Run(() => _backupService.ExecuteJob(SelectedJob));
     }
 
@@ -80,13 +79,13 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(lang)) return;
         LanguageManager.Instance.SetLanguage(lang);
-        // Le LanguageManager ne notifie pas : l'UI doit être rechargée (tu as déjà le bouton 🔄 qui recrée le VM)
+        // Le LanguageManager ne notifie pas automatiquement : le bouton 🔄 qui recrée le VM reste nécessaire
     }
 
     [RelayCommand]
     private void SaveSettings()
     {
-        // Méthode attendue : Save() ou Persist() — adapte si le nom diffère
-        _configuration.Save();
+        // Utilise la méthode existante de Configuration
+        _configuration.SaveConfig();
     }
 }

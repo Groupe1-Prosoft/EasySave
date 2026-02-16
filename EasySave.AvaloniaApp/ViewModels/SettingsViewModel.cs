@@ -37,10 +37,11 @@ public partial class SettingsViewModel : ViewModelBase
 
     private void LoadFromConfig()
     {
+        // Utilise l'API existante de Configuration
         CryptoSoftPath = _configuration.CryptoSoftPath;
-        ExtensionsText = string.Join(", ", _configuration.GetEncryptExtensions());
+        ExtensionsText = string.Join(", ", _configuration.ExtensionsToEncrypt ?? new List<string>());
         BusinessSoftwareName = _configuration.GetBusinessSoftwareName();
-        SelectedLogFormatIndex = _configuration.GetLogFormat() == "xml" ? 1 : 0;
+        SelectedLogFormatIndex = (_configuration.LogFormat ?? "json").ToLower() == "xml" ? 1 : 0;
     }
 
     [RelayCommand]
@@ -51,10 +52,10 @@ public partial class SettingsViewModel : ViewModelBase
         var extensions = ExtensionsText
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
-        _configuration.SetEncryptExtensions(extensions);
 
+        _configuration.ExtensionsToEncrypt = extensions;
         _configuration.SetBusinessSoftwareName(BusinessSoftwareName);
-        _configuration.SetLogFormat(SelectedLogFormatIndex == 1 ? "xml" : "json");
+        _configuration.LogFormat = SelectedLogFormatIndex == 1 ? "xml" : "json";
 
         _configuration.SaveConfig();
         StatusMessage = Loc["SettingsSaved"];

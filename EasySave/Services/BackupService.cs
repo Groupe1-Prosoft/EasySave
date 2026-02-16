@@ -14,7 +14,10 @@ namespace EasySave.Services
     {
         private readonly ILogger logger;
         private readonly Configuration configuration;
+
         private BackupState? currentState;
+        private readonly BusinessSoftwareMonitor businessMonitor;
+
 
         /// <summary>
         /// Initializes the service with configuration.
@@ -23,6 +26,11 @@ namespace EasySave.Services
         {
             this.configuration = configuration;
             logger = new Logger(configuration.LogFormat);
+
+            businessMonitor = new BusinessSoftwareMonitor();
+            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
+
         }
 
         /// <summary>
@@ -31,6 +39,22 @@ namespace EasySave.Services
         public bool ExecuteJob(BackupJob job)
         {
             if (!job.Validate()) return false;
+
+            if (businessMonitor.IsRunning())
+            {
+                var blockLog = new LogData
+                {
+                    Timestamp = DateTime.Now,
+                    Name = job.Name ?? string.Empty,
+                    Source = job.SourceDir ?? string.Empty,
+                    Target = job.TargetDir ?? string.Empty,
+                    Size = 0,
+                    TransferTime = 0
+                };
+                logger.WriteLog(blockLog);
+                return false;
+            }
+
             if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
 
             var files = GetFileList(job.SourceDir!);
@@ -111,6 +135,13 @@ namespace EasySave.Services
                     success = false;
                     continue;
                 }
+
+                if (businessMonitor.IsRunning())
+                {
+                    // Log the block event for this job
+                    break;
+                }
+
 
                 if (!ExecuteJob(job))
                 {

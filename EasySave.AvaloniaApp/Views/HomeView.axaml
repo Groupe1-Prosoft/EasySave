@@ -1,0 +1,193 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EasySave.AvaloniaApp.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="EasySave.AvaloniaApp.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#6366F1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4F46E5"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#EF4444"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="#6366F1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4F46E5"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="Padding" Value="10,8"/>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="#6366F1"/>
+        </Style>
+        <Style Selector="Button.browse">
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="CornerRadius" Value="0,6,6,0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.browse:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E5E7EB"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24" Spacing="24">
+
+            <!-- Page title -->
+            <TextBlock Text="{Binding Loc[HomeTitle]}" FontSize="24" FontWeight="Bold" Foreground="#1E1E1E"/>
+
+            <!-- Status message -->
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#6366F1" FontWeight="SemiBold"
+                       IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+            <!-- Create Job Card -->
+            <Border Background="White" CornerRadius="8" Padding="24"
+                    BoxShadow="0 1 3 0 #1A000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="{Binding Loc[HomeNewJob]}" FontSize="16" FontWeight="SemiBold" Foreground="#1E1E1E"/>
+
+                    <Grid ColumnDefinitions="*,24,*" RowDefinitions="Auto,12,Auto,12,Auto">
+                        <!-- Name -->
+                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                            <TextBlock Text="{Binding Loc[LabelName]}" FontSize="13" Foreground="#64748B"/>
+                            <TextBox Text="{Binding NewName}" Watermark="Backup-01"/>
+                        </StackPanel>
+
+                        <!-- Type -->
+                        <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4">
+                            <TextBlock Text="{Binding Loc[LabelType]}" FontSize="13" Foreground="#64748B"/>
+                            <ComboBox SelectedIndex="{Binding SelectedTypeIndex}" HorizontalAlignment="Stretch"
+                                      CornerRadius="6">
+                                <ComboBoxItem Content="{Binding Loc[TypeFull]}"/>
+                                <ComboBoxItem Content="{Binding Loc[TypeDifferential]}"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <!-- Source -->
+                        <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                            <TextBlock Text="{Binding Loc[LabelSource]}" FontSize="13" Foreground="#64748B"/>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0" Text="{Binding NewSourceDir}"
+                                         CornerRadius="6,0,0,6" Watermark="C:\..."/>
+                                <Button Grid.Column="1" Classes="browse" Content="{Binding Loc[BtnBrowse]}"
+                                        Name="BtnBrowseSource" Click="BtnBrowseSource_Click"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Target -->
+                        <StackPanel Grid.Row="2" Grid.Column="2" Spacing="4">
+                            <TextBlock Text="{Binding Loc[LabelTarget]}" FontSize="13" Foreground="#64748B"/>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0" Text="{Binding NewTargetDir}"
+                                         CornerRadius="6,0,0,6" Watermark="D:\..."/>
+                                <Button Grid.Column="1" Classes="browse" Content="{Binding Loc[BtnBrowse]}"
+                                        Name="BtnBrowseTarget" Click="BtnBrowseTarget_Click"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Create button -->
+                        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                                    Orientation="Horizontal" Spacing="12">
+                            <Button Classes="primary" Content="{Binding Loc[BtnCreate]}"
+                                    Command="{Binding CreateJobCommand}"/>
+                            <Button Classes="primary" Content="{Binding Loc[BtnExecuteAll]}"
+                                    Command="{Binding ExecuteSelectedCommand}"
+
+                                    IsEnabled="{Binding !IsExecuting}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Job List -->
+            <Border Background="White" CornerRadius="8" Padding="24"
+                    BoxShadow="0 1 3 0 #1A000000">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{Binding Loc[HomeJobList]}" FontSize="16" FontWeight="SemiBold" Foreground="#1E1E1E"/>
+
+                    <!-- Empty state -->
+                    <TextBlock Text="{Binding Loc[HomeNoJobs]}" Foreground="#94A3B8" FontStyle="Italic"
+                               IsVisible="{Binding !Jobs.Count}"/>
+
+                    <!-- Jobs list -->
+                    <ItemsControl Name="JobsList" ItemsSource="{Binding Jobs}" x:CompileBindings="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#F9FAFB" CornerRadius="8" Padding="16" Margin="0,4">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding Job.Name}" FontWeight="SemiBold"
+                                                           FontSize="14" Foreground="#1E1E1E"/>
+                                                <Border Background="#EDE9FE" CornerRadius="4" Padding="6,2">
+                                                    <TextBlock Text="{Binding Job.Type}" FontSize="11"
+                                                               Foreground="#6366F1"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Foreground="#64748B" FontSize="12">
+                                                <Run Text="{Binding Job.SourceDir}"/>
+                                                <Run Text=" ? "/>
+                                                <Run Text="{Binding Job.TargetDir}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                                    VerticalAlignment="Center">
+                                            <Button Classes="secondary"
+                                                    Content="&#x25B6;"
+
+                                                    Command="{Binding #JobsList.DataContext.ExecuteJobCommand}"
+                                                    CommandParameter="{Binding Job}"/>
+
+                                            <Button Classes="danger"
+                                                    Content="&#x2716;"
+
+                                                    Command="{Binding #JobsList.DataContext.DeleteJobCommand}"
+                                                    CommandParameter="{Binding Job}"/>
+
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

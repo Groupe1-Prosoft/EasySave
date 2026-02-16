@@ -48,6 +48,9 @@ namespace EasySave.Services
 
             if (!job.Validate()) return false;
 
+            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
+
             if (businessMonitor.IsRunning())
             {
                 var blockLog = new LogData
@@ -155,10 +158,13 @@ namespace EasySave.Services
                     success = false;
                     continue;
                 }
+                businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
 
                 if (businessMonitor.IsRunning()) break;
 
                 if (!ExecuteJob(job)) success = false;
+
             }
 
             return success;

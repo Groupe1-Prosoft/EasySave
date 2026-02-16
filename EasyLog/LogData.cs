@@ -41,8 +41,7 @@ namespace EasyLog
         public long TransferTime { get; set; }
 
         /// <summary>
-        /// Gets or sets the encryption time in milliseconds.
-        /// 0: no encryption. Negative value: error.
+        /// Gets or sets the encryption time in milliseconds (0 = none, >0 = time, &lt;0 = error).
         /// </summary>
         public long EncryptionTime { get; set; }
 

@@ -37,7 +37,6 @@ namespace EasySave.Models
         /// </summary>
         public bool AddJob(BackupJob job)
         {
-            if (jobs.Count >= 5) return false;
             if (!job.Validate()) return false;
 
             if (job.Id == 0)

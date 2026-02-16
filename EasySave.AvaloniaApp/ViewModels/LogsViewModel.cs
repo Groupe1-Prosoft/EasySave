@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
@@ -17,6 +18,11 @@ public partial class LogsViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
+    public LogsViewModel()
+    {
+        LoadLogs();
+    }
+
     [RelayCommand]
     private void LoadLogs()
     {
@@ -27,9 +33,11 @@ public partial class LogsViewModel : ViewModelBase
 
         if (!Directory.Exists(logsDir))
         {
-            StatusMessage = Loc["LogsNoLogs"];
+            StatusMessage = $"Log directory not found: {logsDir}";
             return;
         }
+
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         var files = Directory.GetFiles(logsDir, "*.json");
         foreach (var file in files)
@@ -37,17 +45,16 @@ public partial class LogsViewModel : ViewModelBase
             try
             {
                 string content = File.ReadAllText(file);
-                // Log files may contain a JSON array of entries
-                var entries = JsonSerializer.Deserialize<LogEntry[]>(content);
+                var entries = JsonSerializer.Deserialize<List<LogEntry>>(content, jsonOptions);
                 if (entries != null)
                 {
                     foreach (var entry in entries)
                         Logs.Add(entry);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Skip malformed files
+                StatusMessage = $"Error reading {Path.GetFileName(file)}: {ex.Message}";
             }
         }
 
@@ -58,9 +65,9 @@ public partial class LogsViewModel : ViewModelBase
             try
             {
                 string content = File.ReadAllText(file);
-                var serializer = new System.Xml.Serialization.XmlSerializer(typeof(LogEntry[]));
+                var serializer = new System.Xml.Serialization.XmlSerializer(typeof(List<LogEntry>));
                 using var reader = new StringReader(content);
-                var entries = serializer.Deserialize(reader) as LogEntry[];
+                var entries = serializer.Deserialize(reader) as List<LogEntry>;
                 if (entries != null)
                 {
                     foreach (var entry in entries)
@@ -69,11 +76,14 @@ public partial class LogsViewModel : ViewModelBase
             }
             catch
             {
-                // Skip malformed files
+                // XML format may differ, skip silently
             }
         }
 
-        StatusMessage = Logs.Count == 0 ? Loc["LogsNoLogs"] : string.Empty;
+        if (Logs.Count == 0 && string.IsNullOrEmpty(StatusMessage))
+            StatusMessage = Loc["LogsNoLogs"];
+        else if (Logs.Count > 0)
+            StatusMessage = string.Empty;
     }
 }
 

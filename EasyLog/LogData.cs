@@ -41,6 +41,12 @@ namespace EasyLog
         public long TransferTime { get; set; }
 
         /// <summary>
+        /// Gets or sets the encryption time in milliseconds (0 = none, >0 = time, <0 = error).
+        /// </summary>
+        public long EncryptionTime { get; set; }
+
+
+        /// <summary>
         /// Serializes the log entry to JSON.
         /// </summary>
         public string ToJSON()

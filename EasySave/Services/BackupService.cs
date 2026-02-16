@@ -40,6 +40,9 @@ namespace EasySave.Services
         {
             if (!job.Validate()) return false;
 
+            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
+
             if (businessMonitor.IsRunning())
             {
                 var blockLog = new LogData
@@ -135,12 +138,24 @@ namespace EasySave.Services
                     success = false;
                     continue;
                 }
+                businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
 
                 if (businessMonitor.IsRunning())
                 {
-                    // Log the block event for this job
+                    var blockLog = new LogData
+                    {
+                        Timestamp = DateTime.Now,
+                        Name = job.Name ?? string.Empty,
+                        Source = job.SourceDir ?? string.Empty,
+                        Target = job.TargetDir ?? string.Empty,
+                        Size = 0,
+                        TransferTime = 0
+                    };
+                    logger.WriteLog(blockLog);
                     break;
                 }
+
 
 
                 if (!ExecuteJob(job))

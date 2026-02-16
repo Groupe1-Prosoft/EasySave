@@ -1,18 +1,18 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:EasySave.AvaloniaApp.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
-        x:Class="EasySave.AvaloniaApp.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Title="EasySave"
-        MinWidth="900" MinHeight="600"
-        Width="1100" Height="700"
-        Background="#FAFAFA"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="PreferSystemChrome"
-        ExtendClientAreaTitleBarHeightHint="40">
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:EasySave.AvaloniaApp.ViewModels"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+		x:Class="EasySave.AvaloniaApp.Views.MainWindow"
+		x:DataType="vm:MainWindowViewModel"
+		Title="EasySave"
+		MinWidth="900" MinHeight="600"
+		Width="1100" Height="700"
+		Background="#FAFAFA"
+		ExtendClientAreaToDecorationsHint="True"
+		ExtendClientAreaChromeHints="PreferSystemChrome"
+		ExtendClientAreaTitleBarHeightHint="40">
 
 	<Window.Styles>
 		<!-- Nav button base style -->
@@ -67,7 +67,7 @@
 	<DockPanel>
 		<!-- Title Bar -->
 		<Border DockPanel.Dock="Top" Background="#FAFAFA" Height="40"
-                IsHitTestVisible="True" Name="TitleBar">
+				IsHitTestVisible="True" Name="TitleBar">
 			<Grid ColumnDefinitions="Auto,*,Auto">
 				<!-- Logo + Title -->
 				<StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center">
@@ -75,36 +75,36 @@
 						<TextBlock Text="ES" Foreground="White" FontWeight="Bold" FontSize="13"/>
 					</Border>
 					<TextBlock Text="EasySave" FontWeight="SemiBold" FontSize="14" Foreground="#1E1E1E"
-                               VerticalAlignment="Center"/>
+							   VerticalAlignment="Center"/>
 				</StackPanel>
 
 				<!-- Language Switcher -->
 				<StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,140,0"
-                            VerticalAlignment="Center" Spacing="4">
+							VerticalAlignment="Center" Spacing="4">
 					<Button Classes="lang-btn"
-                            Command="{Binding SwitchLanguageCommand}"
-                            CommandParameter="fr" Content="FR"/>
+							Command="{Binding SwitchLanguageCommand}"
+							CommandParameter="fr" Content="FR"/>
 					<Button Classes="lang-btn"
-                            Command="{Binding SwitchLanguageCommand}"
-                            CommandParameter="en" Content="EN"/>
+							Command="{Binding SwitchLanguageCommand}"
+							CommandParameter="en" Content="EN"/>
 				</StackPanel>
 			</Grid>
 		</Border>
 
 		<!-- SplitView -->
 		<SplitView IsPaneOpen="{Binding IsPaneOpen}"
-                   DisplayMode="CompactInline"
-                   CompactPaneLength="56"
-                   OpenPaneLength="200"
-                   PaneBackground="#F3F0FF">
+				   DisplayMode="CompactInline"
+				   CompactPaneLength="56"
+				   OpenPaneLength="200"
+				   PaneBackground="#F3F0FF">
 
 			<SplitView.Pane>
 				<DockPanel Margin="0,8">
 					<!-- Hamburger button -->
 					<Button DockPanel.Dock="Top"
-                            Classes="nav-btn"
-                            Command="{Binding TogglePaneCommand}"
-                            Margin="6,0,6,8">
+							Classes="nav-btn"
+							Command="{Binding TogglePaneCommand}"
+							Margin="6,0,6,8">
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<TextBlock Text="&#9776;" FontSize="18" Width="24" TextAlignment="Center"/>
 						</StackPanel>
@@ -113,8 +113,8 @@
 					<!-- Navigation buttons -->
 					<StackPanel DockPanel.Dock="Top" Spacing="2">
 						<Button Classes="nav-btn"
-                                Command="{Binding NavigateCommand}"
-                                CommandParameter="Home">
+								Command="{Binding NavigateCommand}"
+								CommandParameter="Home">
 							<StackPanel Orientation="Horizontal" Spacing="12">
 								<TextBlock Text="&#127968;" FontSize="16" Width="24" TextAlignment="Center"/>
 								<TextBlock Text="{Binding Loc[NavHome]}" IsVisible="{Binding IsPaneOpen}"/>
@@ -122,17 +122,8 @@
 						</Button>
 
 						<Button Classes="nav-btn"
-                                Command="{Binding NavigateCommand}"
-                                CommandParameter="Logs">
-							<StackPanel Orientation="Horizontal" Spacing="12">
-								<TextBlock Text="&#128203;" FontSize="16" Width="24" TextAlignment="Center"/>
-								<TextBlock Text="{Binding Loc[NavLogs]}" IsVisible="{Binding IsPaneOpen}"/>
-							</StackPanel>
-						</Button>
-
-						<Button Classes="nav-btn"
-                                Command="{Binding NavigateCommand}"
-                                CommandParameter="Settings">
+								Command="{Binding NavigateCommand}"
+								CommandParameter="Settings">
 							<StackPanel Orientation="Horizontal" Spacing="12">
 								<TextBlock Text="&#9881;" FontSize="16" Width="24" TextAlignment="Center"/>
 								<TextBlock Text="{Binding Loc[NavSettings]}" IsVisible="{Binding IsPaneOpen}"/>

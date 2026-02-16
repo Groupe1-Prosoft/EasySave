@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using EasyLog;
@@ -15,9 +16,10 @@ namespace EasySave.Services
         private readonly ILogger logger;
         private readonly Configuration configuration;
 
-        private BackupState? currentState;
+        // Respecting the class diagram: explicit dependency
+        private readonly CryptoSoftService cryptoSoftService;
         private readonly BusinessSoftwareMonitor businessMonitor;
-
+        private BackupState? currentState;
 
         /// <summary>
         /// Initializes the service with configuration.
@@ -27,10 +29,12 @@ namespace EasySave.Services
             this.configuration = configuration;
             logger = new Logger(configuration.LogFormat);
 
+            // Initialize the sub-services
             businessMonitor = new BusinessSoftwareMonitor();
             businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
 
-
+            cryptoSoftService = new CryptoSoftService();
+            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
         }
 
         /// <summary>
@@ -38,6 +42,10 @@ namespace EasySave.Services
         /// </summary>
         public bool ExecuteJob(BackupJob job)
         {
+            // Update CryptoSoft path in case config changed at runtime
+            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
+            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
             if (!job.Validate()) return false;
 
             if (businessMonitor.IsRunning())
@@ -49,7 +57,8 @@ namespace EasySave.Services
                     Source = job.SourceDir ?? string.Empty,
                     Target = job.TargetDir ?? string.Empty,
                     Size = 0,
-                    TransferTime = 0
+                    TransferTime = 0,
+                    EncryptionTime = -1
                 };
                 logger.WriteLog(blockLog);
                 return false;
@@ -92,7 +101,17 @@ namespace EasySave.Services
                     }
                 }
 
-                long time = CopyFile(file, targetFile);
+                // New logic compliant with Class Diagram
+                long transferTime = CopyFile(file, targetFile);
+                long encryptionTime = 0;
+
+                // Check eligibility using the service
+                if (cryptoSoftService.IsEligible(targetFile, configuration.ExtensionsToEncrypt))
+                {
+                    // Encrypt using the service
+                    long time = cryptoSoftService.EncryptFile(targetFile);
+                    if (time >= 0) encryptionTime = time;
+                }
 
                 var data = new LogData
                 {
@@ -101,7 +120,8 @@ namespace EasySave.Services
                     Source = file,
                     Target = targetFile,
                     Size = new FileInfo(file).Length,
-                    TransferTime = time
+                    TransferTime = transferTime,
+                    EncryptionTime = encryptionTime
                 };
 
                 logger.WriteLog(data);
@@ -136,17 +156,9 @@ namespace EasySave.Services
                     continue;
                 }
 
-                if (businessMonitor.IsRunning())
-                {
-                    // Log the block event for this job
-                    break;
-                }
+                if (businessMonitor.IsRunning()) break;
 
-
-                if (!ExecuteJob(job))
-                {
-                    success = false;
-                }
+                if (!ExecuteJob(job)) success = false;
             }
 
             return success;
@@ -157,14 +169,14 @@ namespace EasySave.Services
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                long start = DateTime.Now.Ticks;
+                Stopwatch stopwatch = Stopwatch.StartNew();
                 File.Copy(source, dest, true);
-                return (DateTime.Now.Ticks - start) / 10000;
+                stopwatch.Stop();
+                return stopwatch.ElapsedMilliseconds;
             }
             catch
             {
-                long start = DateTime.Now.Ticks;
-                return -((DateTime.Now.Ticks - start) / 10000);
+                return -1;
             }
         }
 

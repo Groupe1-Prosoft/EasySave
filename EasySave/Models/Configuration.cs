@@ -12,32 +12,79 @@ namespace EasySave.Models
     public class Configuration
     {
         private const string configFilePath = "config.json";
+
+        // Attributs privés (comme sur le diagramme)
         private readonly List<BackupJob> jobs = new();
         private string logFormat = "json";
+        private string businessSoftwareName = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the log format.
-        /// </summary>
+        // Note: Le diagramme nomme ceci 'encryptExtensions' en privé
+        private List<string> encryptExtensions = new();
+
+        // On garde CryptoSoftPath pour que ça marche (implémentation nécessaire)
+        public string CryptoSoftPath { get; set; } = string.Empty;
+
+        // --- Méthodes conformes au diagramme ---
+
+        public string GetBusinessSoftwareName()
+        {
+            return businessSoftwareName;
+        }
+
+        public void SetBusinessSoftwareName(string name)
+        {
+            businessSoftwareName = name;
+        }
+
+        public string GetLogFormat()
+        {
+            return logFormat;
+        }
+
+        // On garde la propriété LogFormat pour le binding JSON, mais on ajoute le Setter du diagramme
+        public void SetLogFormat(string format)
+        {
+            logFormat = string.IsNullOrWhiteSpace(format) ? "json" : format.ToLower();
+        }
+
+        // Propriété Property C# pour faciliter la sérialisation JSON, 
+        // mais on utilise les méthodes ci-dessous pour respecter le diagramme.
         public string LogFormat
         {
-            get => logFormat;
-            set => logFormat = string.IsNullOrWhiteSpace(value) ? "json" : value.ToLower();
+            get => GetLogFormat();
+            set => SetLogFormat(value);
         }
 
         /// <summary>
-        /// Returns a copy of the current job list.
+        /// Conforme au diagramme : Retourne la liste des extensions.
         /// </summary>
+        public List<string> GetEncryptExtensions()
+        {
+            return encryptExtensions;
+        }
+
+        /// <summary>
+        /// Conforme au diagramme : Définit la liste des extensions.
+        /// </summary>
+        public void SetEncryptExtensions(List<string> ext)
+        {
+            encryptExtensions = ext;
+        }
+
+        // Propriété wrapper pour la sérialisation JSON (JsonSerializer a besoin de propriétés publiques)
+        public List<string> ExtensionsToEncrypt
+        {
+            get => encryptExtensions;
+            set => encryptExtensions = value;
+        }
+
         public List<BackupJob> GetJobs()
         {
             return new List<BackupJob>(jobs);
         }
 
-        /// <summary>
-        /// Adds a job if the limit is not reached.
-        /// </summary>
         public bool AddJob(BackupJob job)
         {
-            if (jobs.Count >= 5) return false;
             if (!job.Validate()) return false;
 
             if (job.Id == 0)
@@ -50,9 +97,6 @@ namespace EasySave.Models
             return SaveConfig();
         }
 
-        /// <summary>
-        /// Removes a job by its identifier.
-        /// </summary>
         public bool RemoveJob(int id)
         {
             var job = jobs.FirstOrDefault(j => j.Id == id);
@@ -61,9 +105,6 @@ namespace EasySave.Models
             return SaveConfig();
         }
 
-        /// <summary>
-        /// Loads configuration and jobs from disk.
-        /// </summary>
         public bool LoadConfig()
         {
             try
@@ -76,7 +117,13 @@ namespace EasySave.Models
 
                 jobs.Clear();
                 if (data?.Jobs != null) jobs.AddRange(data.Jobs);
-                logFormat = string.IsNullOrWhiteSpace(data?.LogFormat) ? "json" : data.LogFormat.ToLower();
+
+                SetLogFormat(data?.LogFormat ?? "json");
+                SetBusinessSoftwareName(data?.BusinessSoftwareName ?? string.Empty);
+
+                // Chargement des extensions et du chemin CryptoSoft
+                CryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
+                SetEncryptExtensions(data?.ExtensionsToEncrypt ?? new List<string>());
 
                 return true;
             }
@@ -86,9 +133,6 @@ namespace EasySave.Models
             }
         }
 
-        /// <summary>
-        /// Saves configuration and jobs to disk.
-        /// </summary>
         public bool SaveConfig()
         {
             try
@@ -99,7 +143,10 @@ namespace EasySave.Models
                 var data = new ConfigurationData
                 {
                     Jobs = jobs,
-                    LogFormat = logFormat
+                    LogFormat = logFormat,
+                    BusinessSoftwareName = businessSoftwareName,
+                    CryptoSoftPath = CryptoSoftPath,
+                    ExtensionsToEncrypt = encryptExtensions
                 };
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
@@ -118,10 +165,14 @@ namespace EasySave.Models
             return Path.Combine(appData, "EasySave", configFilePath);
         }
 
+        // Classe interne pour la structure JSON
         private sealed class ConfigurationData
         {
             public List<BackupJob> Jobs { get; set; } = new();
             public string LogFormat { get; set; } = "json";
+            public string BusinessSoftwareName { get; set; } = string.Empty;
+            public string CryptoSoftPath { get; set; } = string.Empty;
+            public List<string> ExtensionsToEncrypt { get; set; } = new();
         }
     }
 }

@@ -1,0 +1,100 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EasySave.AvaloniaApp.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="EasySave.AvaloniaApp.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#6366F1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4F46E5"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="Padding" Value="10,8"/>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="#6366F1"/>
+        </Style>
+        <Style Selector="Button.browse">
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="CornerRadius" Value="0,6,6,0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.browse:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E5E7EB"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24" Spacing="24" MaxWidth="600">
+
+            <!-- Page title -->
+            <TextBlock Text="{Binding Loc[SettingsTitle]}" FontSize="24" FontWeight="Bold" Foreground="#1E1E1E"/>
+
+            <!-- Status message -->
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#16A34A" FontWeight="SemiBold"
+                       IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+            <!-- Settings Card -->
+            <Border Background="White" CornerRadius="8" Padding="24"
+                    BoxShadow="0 1 3 0 #1A000000">
+                <StackPanel Spacing="20">
+
+                    <!-- CryptoSoft Path -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[SettingsCryptoPath]}" FontSize="13" Foreground="#64748B"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding CryptoSoftPath}"
+                                     CornerRadius="6,0,0,6" Watermark="C:\...\CryptoSoft.exe"/>
+                            <Button Grid.Column="1" Classes="browse" Content="{Binding Loc[BtnBrowse]}"
+                                    Name="BtnBrowseCrypto" Click="BtnBrowseCrypto_Click"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Extensions -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[SettingsExtensions]}" FontSize="13" Foreground="#64748B"/>
+                        <TextBox Text="{Binding ExtensionsText}" Watermark=".txt, .docx, .pdf"/>
+                    </StackPanel>
+
+                    <!-- Business Software -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[SettingsBusinessSoft]}" FontSize="13" Foreground="#64748B"/>
+                        <TextBox Text="{Binding BusinessSoftwareName}" Watermark="calculator"/>
+                    </StackPanel>
+
+                    <!-- Log Format -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[SettingsLogFormat]}" FontSize="13" Foreground="#64748B"/>
+                        <ComboBox SelectedIndex="{Binding SelectedLogFormatIndex}" CornerRadius="6"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="JSON"/>
+                            <ComboBoxItem Content="XML"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Save -->
+                    <Button Classes="primary" Content="{Binding Loc[BtnSave]}"
+                            Command="{Binding SaveCommand}" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -17,12 +17,14 @@ namespace EasySave.Models
 
         private string businessSoftwareName = string.Empty;
 
+        // New variables for encryption settings
+        private string cryptoSoftPath = string.Empty;
+        private List<string> extensionsToEncrypt = new();
+
         /// <summary>
         /// Gets or sets the name of the business software to monitor.
         /// </summary>
-
         public string GetBusinessSoftwareName()
-
         {
             return businessSoftwareName;
         }
@@ -32,8 +34,6 @@ namespace EasySave.Models
             businessSoftwareName = name;
         }
 
-
-
         /// <summary>
         /// Gets or sets the log format.
         /// </summary>
@@ -41,6 +41,20 @@ namespace EasySave.Models
         {
             get => logFormat;
             set => logFormat = string.IsNullOrWhiteSpace(value) ? "json" : value.ToLower();
+        }
+
+        // Gets or sets the path to CryptoSoft executable
+        public string CryptoSoftPath
+        {
+            get => cryptoSoftPath;
+            set => cryptoSoftPath = value;
+        }
+
+        // Gets or sets the list of extensions to encrypt
+        public List<string> ExtensionsToEncrypt
+        {
+            get => extensionsToEncrypt;
+            set => extensionsToEncrypt = value;
         }
 
         /// <summary>
@@ -97,6 +111,9 @@ namespace EasySave.Models
                 logFormat = string.IsNullOrWhiteSpace(data?.LogFormat) ? "json" : data.LogFormat.ToLower();
                 businessSoftwareName = data?.BusinessSoftwareName ?? string.Empty;
 
+                // Load encryption settings
+                cryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
+                extensionsToEncrypt = data?.ExtensionsToEncrypt ?? new List<string>();
 
                 return true;
             }
@@ -120,9 +137,11 @@ namespace EasySave.Models
                 {
                     Jobs = jobs,
                     LogFormat = logFormat,
-                    BusinessSoftwareName = businessSoftwareName
+                    BusinessSoftwareName = businessSoftwareName,
+                    // Save encryption settings
+                    CryptoSoftPath = cryptoSoftPath,
+                    ExtensionsToEncrypt = extensionsToEncrypt
                 };
-
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 File.WriteAllText(path, JsonSerializer.Serialize(data, options));
@@ -146,6 +165,9 @@ namespace EasySave.Models
             public string LogFormat { get; set; } = "json";
             public string BusinessSoftwareName { get; set; } = string.Empty;
 
+            // New properties for JSON storage
+            public string CryptoSoftPath { get; set; } = string.Empty;
+            public List<string> ExtensionsToEncrypt { get; set; } = new();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using EasyLog;
@@ -29,8 +30,6 @@ namespace EasySave.Services
 
             businessMonitor = new BusinessSoftwareMonitor();
             businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
-
-
         }
 
         /// <summary>
@@ -49,7 +48,8 @@ namespace EasySave.Services
                     Source = job.SourceDir ?? string.Empty,
                     Target = job.TargetDir ?? string.Empty,
                     Size = 0,
-                    TransferTime = 0
+                    TransferTime = 0,
+                    EncryptionTime = -1 // -1 means error or blocked
                 };
                 logger.WriteLog(blockLog);
                 return false;
@@ -92,7 +92,8 @@ namespace EasySave.Services
                     }
                 }
 
-                long time = CopyFile(file, targetFile);
+                // Call CopyFile which now returns both transfer time and encryption time
+                (long transferTime, long encryptionTime) = CopyFile(file, targetFile);
 
                 var data = new LogData
                 {
@@ -101,7 +102,8 @@ namespace EasySave.Services
                     Source = file,
                     Target = targetFile,
                     Size = new FileInfo(file).Length,
-                    TransferTime = time
+                    TransferTime = transferTime,
+                    EncryptionTime = encryptionTime // New property for logs
                 };
 
                 logger.WriteLog(data);
@@ -152,19 +154,59 @@ namespace EasySave.Services
             return success;
         }
 
-        private long CopyFile(string source, string dest)
+        // Modified method to handle encryption
+        private (long TransferTime, long EncryptionTime) CopyFile(string source, string dest)
         {
+            long encryptionTime = 0; // 0 means no encryption
+            long transferTime = 0;
+
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                long start = DateTime.Now.Ticks;
-                File.Copy(source, dest, true);
-                return (DateTime.Now.Ticks - start) / 10000;
+                Stopwatch stopwatch = Stopwatch.StartNew();
+
+                // Check if encryption is needed
+                string extension = Path.GetExtension(source);
+                bool needEncryption = configuration.ExtensionsToEncrypt.Contains(extension)
+                                      && File.Exists(configuration.CryptoSoftPath);
+
+                if (needEncryption)
+                {
+                    // Prepare CryptoSoft process
+                    ProcessStartInfo startInfo = new ProcessStartInfo
+                    {
+                        FileName = configuration.CryptoSoftPath,
+                        Arguments = $"\"{source}\" \"{dest}\"",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+
+                    using (Process process = Process.Start(startInfo))
+                    {
+                        process.WaitForExit();
+                    }
+
+                    stopwatch.Stop();
+                    // Total time is considered both transfer and encryption time here
+                    transferTime = stopwatch.ElapsedMilliseconds;
+                    encryptionTime = stopwatch.ElapsedMilliseconds;
+                }
+                else
+                {
+                    // Standard copy
+                    File.Copy(source, dest, true);
+                    stopwatch.Stop();
+                    transferTime = stopwatch.ElapsedMilliseconds;
+                    encryptionTime = 0; // 0 because not encrypted
+                }
+
+                return (transferTime, encryptionTime);
             }
             catch
             {
-                long start = DateTime.Now.Ticks;
-                return -((DateTime.Now.Ticks - start) / 10000);
+                // In case of error, return negative values
+                return (-1, -1);
             }
         }
 

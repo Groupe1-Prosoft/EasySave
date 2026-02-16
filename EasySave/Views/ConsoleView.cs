@@ -5,155 +5,64 @@ using EasySave.Models;
 
 namespace EasySave.Views
 {
+    /// <summary>
+    /// Handles the minimal console UI required by the class diagram.
+    /// </summary>
     public class ConsoleView
     {
         private readonly LanguageManager _languageManager;
 
-        // Constructor to initialize the view with the language manager
+        /// <summary>
+        /// Initializes the console view with a language manager.
+        /// </summary>
         public ConsoleView(LanguageManager languageManager)
         {
             _languageManager = languageManager;
         }
 
-        // Displays the application banner in ASCII art
-        public void ShowHeader()
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(@"                                                                                               ");
-            Console.WriteLine(@"    ,---,.                                             .--.--.                                 ");
-            Console.WriteLine(@"  ,'  .' |                                            /  /    '.                                ");
-            Console.WriteLine(@",---.'   |                                           |  :  /`. /                                ");
-            Console.WriteLine(@"|   |   .'               .--.--.                     ;  |  |--`                 .---.          ");
-            Console.WriteLine(@":   :  |-,   ,--.--.    /  /    '       .--,         |  :  ;_      ,--.--.    /.  ./|  ,---.   ");
-            Console.WriteLine(@":   |  ;/|  /       \  |  :  /`./     /_ ./|          \  \    `.  /       \ .-' . ' | /     \  ");
-            Console.WriteLine(@"|   :   .' .--.  .-. | |  :  ;_    , ' , ' :           `----.   \.--.  .-. /___/ \: |/    /  | ");
-            Console.WriteLine(@"|   |  |-,  \__\/: . .  \  \    `./___/ \: |           __ \  \  | \__\/: . .   \  ' .    ' / | ");
-            Console.WriteLine(@"'   :  ;/|  ,"" .--.; |   `----.   \.  \  ' |          /  /`--'  / ,"" .--.; |\   \   '   ;   /| ");
-            Console.WriteLine(@"|   |    \ /  /  ,.  |  /  /`--'  / \  ;   :         '--'.     / /  /  ,.  | \   \  '   |  / | ");
-            Console.WriteLine(@"|   :   .';  :   .'   \'--'.     /   \  \  ;           `--'---' ;  :   .'   \ \   \ |   :    | ");
-            Console.WriteLine(@"|   | ,'  |  ,     .-./  `--'---'     :  \  \                   |  ,     .-./  '---"" \   \  /  ");
-            Console.WriteLine(@"`---.'     `--`---'                    \  ' ;                    `--`---'             `----'   ");
-            Console.WriteLine(@"                                        `--`                                                    ");
-            Console.WriteLine("---------------------------------------");
-            Console.ResetColor();
-        }
-
-        // Clears the screen and displays the main menu options
+        /// <summary>
+        /// Displays the main menu and prompts for the user choice.
+        /// </summary>
         public void ShowMenu()
         {
             Console.Clear();
-            ShowHeader();
             Console.WriteLine(_languageManager.GetText("SelectOption"));
             Console.WriteLine(_languageManager.GetText("ListJobs"));
             Console.WriteLine(_languageManager.GetText("CreateJob"));
             Console.WriteLine(_languageManager.GetText("ExecuteJob"));
             Console.WriteLine(_languageManager.GetText("ExecuteAllJobs"));
             Console.WriteLine(_languageManager.GetText("DeleteJob"));
+            Console.WriteLine(_languageManager.GetText("Options"));
             Console.WriteLine(_languageManager.GetText("Exit"));
             Console.WriteLine(_languageManager.GetText("Separator"));
             Console.Write(_languageManager.GetText("YourChoice"));
         }
 
-        // Reads a line of text entered by the user
+        /// <summary>
+        /// Prompts the user to select the log format.
+        /// </summary>
+        public string SelectLogFormat()
+        {
+            Console.WriteLine("1. Format JSON (Défaut)");
+            Console.WriteLine("2. Format XML");
+            Console.Write("> ");
+            string choice = Console.ReadLine() ?? string.Empty;
+            return choice.Trim().Equals("2") || choice.Trim().Equals("xml", StringComparison.OrdinalIgnoreCase)
+                ? "xml"
+                : "json";
+        }
+
+        /// <summary>
+        /// Reads a single line from the console.
+        /// </summary>
         public string GetInput()
         {
             return Console.ReadLine() ?? string.Empty;
         }
 
-        // Displays the language selection screen at startup
-        public void ShowLanguageSelection()
-        {
-            Console.Clear();
-            Console.WriteLine("EasySave 1.0");
-            Console.WriteLine();
-            Console.WriteLine("Select language: 1. English  2. Français");
-            Console.Write("> ");
-        }
-
-        // Utility method to clear the console and redisplay the header
-        public void ClearAndShowHeader()
-        {
-            Console.Clear();
-            ShowHeader();
-        }
-
-        // Helper to display a message with a specific color
-        public void DisplayMessage(string message, ConsoleColor color)
-        {
-            if (!string.IsNullOrEmpty(message))
-            {
-                Console.ForegroundColor = color;
-                Console.WriteLine(message);
-                Console.ResetColor();
-            }
-        }
-
-        // Displays an error message in red
-        public void DisplayError(string message)
-        {
-            DisplayMessage(message, ConsoleColor.Red);
-        }
-
-        // Displays a success message in green
-        public void DisplaySuccess(string message)
-        {
-            DisplayMessage(message, ConsoleColor.Green);
-        }
-
-        // Pauses the program and waits for the user to press Enter
-        public void WaitUser()
-        {
-            Console.WriteLine();
-            Console.WriteLine(_languageManager.GetText("PressEnterReturn"));
-            Console.ReadLine();
-        }
-
-        // Displays the list of all configured backup jobs
-        public void DisplayJobList(List<BackupJob> jobs)
-        {
-            if (jobs == null || jobs.Count == 0)
-            {
-                Console.WriteLine(_languageManager.GetText("NoJobs"));
-            }
-            else
-            {
-                for (int i = 0; i < jobs.Count; i++)
-                {
-                    var job = jobs[i];
-                    Console.WriteLine($"{i + 1}. {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}");
-                }
-            }
-        }
-
-        // Displays a numbered list of jobs for selection
-        public void DisplayJobSelection(List<BackupJob> jobs)
-        {
-            for (int i = 0; i < jobs.Count; i++)
-            {
-                Console.WriteLine($"{i + 1}. {jobs[i].Name}");
-            }
-            Console.WriteLine();
-        }
-
-        // Sets the title of the console window
-        public void SetTitle(string title)
-        {
-            Console.Title = title;
-        }
-
-        // Displays a localized text based on the key
-        public void ShowText(string key)
-        {
-            Console.WriteLine(_languageManager.GetText(key));
-        }
-
-        // Displays a localized text with parameters (like job name or numbers)
-        public void ShowTextWithParam(string key, params object[] args)
-        {
-            Console.WriteLine(_languageManager.GetText(key, args));
-        }
-
-        // Displays a visual progress bar based on the backup state
+        /// <summary>
+        /// Displays a progress bar based on the provided state.
+        /// </summary>
         public void ShowProgress(BackupState state)
         {
             if (state == null) return;
@@ -171,11 +80,17 @@ namespace EasySave.Views
             Console.Write($"\r[{bar}] {progress}% - {state.FilesRemaining} files remaining");
         }
 
-        // Displays a prompt message and waits for user input
-        public string PromptInput(string key)
+        /// <summary>
+        /// Displays an error message in red.
+        /// </summary>
+        public void DisplayError(string message)
         {
-            Console.Write(_languageManager.GetText(key));
-            return Console.ReadLine() ?? string.Empty;
+            if (!string.IsNullOrEmpty(message))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(message);
+                Console.ResetColor();
+            }
         }
     }
 }

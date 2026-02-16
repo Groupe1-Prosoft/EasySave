@@ -1,8 +1,13 @@
 ﻿namespace EasyLog
 {
-    // Interface for the Logger (SOLID principle)
+    /// <summary>
+    /// Defines a contract for log persistence.
+    /// </summary>
     public interface ILogger
     {
+        /// <summary>
+        /// Writes a log entry to the target storage.
+        /// </summary>
         bool WriteLog(LogData data);
     }
 }

@@ -1,9 +1,18 @@
 ﻿namespace EasySave.Models
 {
-    // Enum to define the available backup types
+    /// <summary>
+    /// Enumerates supported backup strategies.
+    /// </summary>
     public enum BackupType
     {
-        Full,        // Full backup
-        Differential // Differential backup
+        /// <summary>
+        /// Full copy of all files.
+        /// </summary>
+        Full,
+
+        /// <summary>
+        /// Copies only files newer than the destination.
+        /// </summary>
+        Differential
     }
 }

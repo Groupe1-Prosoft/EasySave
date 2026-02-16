@@ -1,13 +1,12 @@
+using System;
 using System.Diagnostics;
-
+using System.IO;
 
 namespace EasySave.Services
 {
-
     /// <summary>
     /// Detects if a specified business software process is currently running.
     /// </summary>
-
     public class BusinessSoftwareMonitor
     {
         private string processName = string.Empty;
@@ -22,14 +21,14 @@ namespace EasySave.Services
             if (string.IsNullOrEmpty(processName))
                 return false;
 
-            return Process.GetProcessesByName(processName).Length > 0;
+            // Ajout nécessaire : On retire ".exe" si présent car GetProcessesByName ne le supporte pas
+            string nameToCheck = processName;
+            if (nameToCheck.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                nameToCheck = Path.GetFileNameWithoutExtension(nameToCheck);
+            }
+
+            return Process.GetProcessesByName(nameToCheck).Length > 0;
         }
-
-
-    } 
+    }
 }
-
-
-
-
-

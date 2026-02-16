@@ -16,9 +16,10 @@ namespace EasySave.Services
         private readonly ILogger logger;
         private readonly Configuration configuration;
 
-        private BackupState? currentState;
+        // Respecting the class diagram: explicit dependency
+        private readonly CryptoSoftService cryptoSoftService;
         private readonly BusinessSoftwareMonitor businessMonitor;
-
+        private BackupState? currentState;
 
         /// <summary>
         /// Initializes the service with configuration.
@@ -28,8 +29,12 @@ namespace EasySave.Services
             this.configuration = configuration;
             logger = new Logger(configuration.LogFormat);
 
+            // Initialize the sub-services
             businessMonitor = new BusinessSoftwareMonitor();
             businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
+            cryptoSoftService = new CryptoSoftService();
+            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
         }
 
         /// <summary>
@@ -37,6 +42,10 @@ namespace EasySave.Services
         /// </summary>
         public bool ExecuteJob(BackupJob job)
         {
+            // Update CryptoSoft path in case config changed at runtime
+            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
+            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+
             if (!job.Validate()) return false;
 
             if (businessMonitor.IsRunning())
@@ -49,7 +58,7 @@ namespace EasySave.Services
                     Target = job.TargetDir ?? string.Empty,
                     Size = 0,
                     TransferTime = 0,
-                    EncryptionTime = -1 // -1 means error or blocked
+                    EncryptionTime = -1
                 };
                 logger.WriteLog(blockLog);
                 return false;
@@ -92,8 +101,17 @@ namespace EasySave.Services
                     }
                 }
 
-                // Call CopyFile which now returns both transfer time and encryption time
-                (long transferTime, long encryptionTime) = CopyFile(file, targetFile);
+                // New logic compliant with Class Diagram
+                long transferTime = CopyFile(file, targetFile);
+                long encryptionTime = 0;
+
+                // Check eligibility using the service
+                if (cryptoSoftService.IsEligible(targetFile, configuration.ExtensionsToEncrypt))
+                {
+                    // Encrypt using the service
+                    long time = cryptoSoftService.EncryptFile(targetFile);
+                    if (time >= 0) encryptionTime = time;
+                }
 
                 var data = new LogData
                 {
@@ -103,7 +121,7 @@ namespace EasySave.Services
                     Target = targetFile,
                     Size = new FileInfo(file).Length,
                     TransferTime = transferTime,
-                    EncryptionTime = encryptionTime // New property for logs
+                    EncryptionTime = encryptionTime
                 };
 
                 logger.WriteLog(data);
@@ -138,75 +156,27 @@ namespace EasySave.Services
                     continue;
                 }
 
-                if (businessMonitor.IsRunning())
-                {
-                    // Log the block event for this job
-                    break;
-                }
+                if (businessMonitor.IsRunning()) break;
 
-
-                if (!ExecuteJob(job))
-                {
-                    success = false;
-                }
+                if (!ExecuteJob(job)) success = false;
             }
 
             return success;
         }
 
-        // Modified method to handle encryption
-        private (long TransferTime, long EncryptionTime) CopyFile(string source, string dest)
+        private long CopyFile(string source, string dest)
         {
-            long encryptionTime = 0; // 0 means no encryption
-            long transferTime = 0;
-
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                 Stopwatch stopwatch = Stopwatch.StartNew();
-
-                // Check if encryption is needed
-                string extension = Path.GetExtension(source);
-                bool needEncryption = configuration.ExtensionsToEncrypt.Contains(extension)
-                                      && File.Exists(configuration.CryptoSoftPath);
-
-                if (needEncryption)
-                {
-                    // Prepare CryptoSoft process
-                    ProcessStartInfo startInfo = new ProcessStartInfo
-                    {
-                        FileName = configuration.CryptoSoftPath,
-                        Arguments = $"\"{source}\" \"{dest}\"",
-                        RedirectStandardOutput = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-
-                    using (Process process = Process.Start(startInfo))
-                    {
-                        process.WaitForExit();
-                    }
-
-                    stopwatch.Stop();
-                    // Total time is considered both transfer and encryption time here
-                    transferTime = stopwatch.ElapsedMilliseconds;
-                    encryptionTime = stopwatch.ElapsedMilliseconds;
-                }
-                else
-                {
-                    // Standard copy
-                    File.Copy(source, dest, true);
-                    stopwatch.Stop();
-                    transferTime = stopwatch.ElapsedMilliseconds;
-                    encryptionTime = 0; // 0 because not encrypted
-                }
-
-                return (transferTime, encryptionTime);
+                File.Copy(source, dest, true);
+                stopwatch.Stop();
+                return stopwatch.ElapsedMilliseconds;
             }
             catch
             {
-                // In case of error, return negative values
-                return (-1, -1);
+                return -1;
             }
         }
 

@@ -25,21 +25,18 @@ flowchart LR
         UC_Settings(["Manage Settings"])
         UC_Full(["Perform Full Backup"])
         UC_Diff(["Perform Differential Backup"])
-        UC_Log(["Write Daily Log"])
-        UC_State(["Update State File"])
         UC_Encrypt(["Encrypt File"])
-        UC_Detect(["Detect Software"])
         UC_LogFormat(["Choose Log Format"])
         UC_SetExtensions(["Set Encrypted Extensions"])
         UC_SetBusiness(["Set  Software"])
+        UC_ChooseType(["Choose Backup Type"])
+
   end
     U(("User")) --> UC_Create & UC_List & UC_Exec & UC_ExecSeq & UC_Del & UC_Lang & UC_Settings
-    UC_Full -. "«extend»<br/>[type = Full]" .-> UC_Exec
-    UC_Diff -. "«extend»<br/>[type = Differential]" .-> UC_Exec
-    UC_Exec -. "«include»" .-> UC_Log
-    UC_Exec -. "«include»" .-> UC_State
-    UC_Exec -. "«include»" .-> UC_Encrypt
-    UC_Exec -. "«include»" .-> UC_Detect
+    UC_Exec -. "«include»" .-> UC_ChooseType
+    UC_Full -. "«extend»<br/>[type = Full]" .-> UC_ChooseType
+    UC_Diff -. "«extend»<br/>[type = Differential]" .-> UC_ChooseType
+   UC_Encrypt -. "«extend»<br/>[file eligible]" .-> UC_Exec
     UC_ExecSeq -. "«include»" .-> UC_Exec
     UC_Settings -. "«include»" .-> UC_LogFormat
     UC_Settings -. "«include»" .-> UC_SetExtensions
@@ -54,13 +51,12 @@ flowchart LR
      UC_Settings:::caseStyle
      UC_Full:::caseStyle
      UC_Diff:::caseStyle
-     UC_Log:::caseStyle
-     UC_State:::caseStyle
      UC_Encrypt:::caseStyle
-     UC_Detect:::caseStyle
      UC_LogFormat:::caseStyle
      UC_SetExtensions:::caseStyle
      UC_SetBusiness:::caseStyle
+     UC_ChooseType:::caseStyle
+
      U:::actorStyle
     classDef actorStyle fill:#fff,stroke:#000,stroke-width:2px
     classDef caseStyle fill:#fff,stroke:#000,stroke-width:1px,rx:20,ry:20
@@ -79,10 +75,10 @@ classDiagram
 
     class MainWindow {
         <<Avalonia View>>
-        -dataContext: MainViewModel
+        -dataContext: MainWindowViewModel
     }
 
-    class MainViewModel {
+    class MainWindowViewModel {
         -backupService: BackupService
         -configuration: Configuration
         -languageManager: LanguageManager
@@ -124,7 +120,7 @@ classDiagram
     }
 
     class BackupService {
-        -logger: Logger
+        -logger: ILogger
         -configuration: Configuration
         -cryptoSoftService: CryptoSoftService
         -businessMonitor: BusinessSoftwareMonitor
@@ -208,12 +204,14 @@ classDiagram
     }
 
     Program *-- MainWindow : creates
-    Program *-- MainViewModel : creates
-    MainWindow --> MainViewModel : binds to
+    Program *-- MainWindowViewModel : creates
+    Program ..> LanguageManager
 
-    MainViewModel --> BackupService : uses
-    MainViewModel --> Configuration : uses
-    MainViewModel --> LanguageManager : uses
+    MainWindow --> MainWindowViewModel : binds to
+
+    MainWindowViewModel --> BackupService : uses
+    MainWindowViewModel --> Configuration : uses
+    MainWindowViewModel --> LanguageManager : uses
 
     BackupService --> Configuration : reads config
     BackupService ..> BackupState : creates & updates
@@ -242,22 +240,18 @@ classDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant Configuration
-    participant BackupJob
 
     User->>MainWindow: Click "Create backup job"
-    MainWindow->>MainViewModel: CreateJobCommand()
+    MainWindow->>HomeViewModel: CreateJobCommand()
 
-    MainViewModel->>BackupJob: new BackupJob()
-    BackupJob->>BackupJob: Validate()
-    BackupJob-->>MainViewModel: Valid job
-
-    MainViewModel->>Configuration: AddJob()
+    HomeViewModel->>Configuration: AddJob(job)
+    Configuration->>Configuration: job.Validate()
     Configuration->>Configuration: SaveConfig()
-    Configuration-->>MainViewModel: Success
+    Configuration-->>HomeViewModel: Success
 
-    MainViewModel-->>MainWindow: Update Jobs list
+    HomeViewModel-->>MainWindow: Update Jobs list
     MainWindow-->>User: Job displayed in list
 ```
 
@@ -269,7 +263,7 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant BackupService
     participant BusinessSoftwareMonitor
     participant CryptoSoftService
@@ -277,16 +271,16 @@ sequenceDiagram
     participant ILogger
 
     User->>MainWindow: Click "Execute"
-    MainWindow->>MainViewModel: ExecuteJobCommand()
-    MainViewModel->>BackupService: ExecuteJob()
+    MainWindow->>HomeViewModel: ExecuteJobCommand()
+    HomeViewModel->>BackupService: ExecuteJob()
 
     BackupService->>BusinessSoftwareMonitor: IsRunning()
 
     alt Business software detected
         BusinessSoftwareMonitor-->>BackupService: true
         BackupService->>ILogger: WriteLog()
-        BackupService-->>MainViewModel: Backup blocked
-        MainViewModel-->>MainWindow: Display error
+        BackupService-->>HomeViewModel: Backup blocked
+        HomeViewModel-->>MainWindow: Display error
     else No business software
         BusinessSoftwareMonitor-->>BackupService: false
         BackupService->>BackupState: new BackupState()
@@ -298,8 +292,8 @@ sequenceDiagram
             BackupService->>BackupState: UpdateStateJSON()
         end
 
-        BackupService-->>MainViewModel: Backup completed
-        MainViewModel-->>MainWindow: Update status
+        BackupService-->>HomeViewModel: Backup completed
+        HomeViewModel-->>MainWindow: Update status
     end
 ```
 
@@ -312,22 +306,17 @@ sequenceDiagram
    sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant Configuration
 
     User->>MainWindow: Click "Delete job"
-    MainWindow->>MainViewModel: DeleteJobCommand()
+    MainWindow->>HomeViewModel: DeleteJobCommand()
 
-    MainViewModel->>MainWindow: Confirm deletion?
-    MainWindow->>User: Display confirmation dialog
-    User->>MainWindow: Confirm
-
-    MainWindow->>MainViewModel: Confirmed
-    MainViewModel->>Configuration: RemoveJob()
+    HomeViewModel->>Configuration: RemoveJob()
     Configuration->>Configuration: SaveConfig()
-    Configuration-->>MainViewModel: Job removed
+    Configuration-->>HomeViewModel: Job removed
 
-    MainViewModel-->>MainWindow: Update Jobs list
+    HomeViewModel-->>MainWindow: Update Jobs list
     MainWindow-->>User: Job removed from list  
 ```
 
@@ -338,17 +327,21 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant MainWindowViewModel
+    participant LocalizationHelper
     participant LanguageManager
 
     User->>MainWindow: Select language
-    MainWindow->>MainViewModel: ChangeLanguageCommand()
+    MainWindow->>MainWindowViewModel: SwitchLanguageCommand(lang)
 
-    MainViewModel->>LanguageManager: SetLanguage()
+    MainWindowViewModel->>LocalizationHelper: SwitchLanguage(lang)
+    LocalizationHelper->>LanguageManager: SetLanguage(lang)
     LanguageManager->>LanguageManager: LoadTranslations()
-    LanguageManager-->>MainViewModel: Language changed
+    LanguageManager-->>LocalizationHelper: done
+    LocalizationHelper-->>MainWindowViewModel: Language changed
 
-    MainViewModel-->>MainWindow: Update UI bindings
+
+    MainWindowViewModel-->>MainWindow: Update UI bindings
     MainWindow-->>User: Interface refreshed
 ```
 
@@ -359,18 +352,16 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant BackupService
-    participant BackupJob
     participant CryptoSoftService
     participant ILogger
 
     User->>MainWindow: Click "Execute differential"
-    MainWindow->>MainViewModel: ExecuteJobCommand()
-    MainViewModel->>BackupService: ExecuteJob()
+    MainWindow->>HomeViewModel: ExecuteJobCommand()
+    HomeViewModel->>BackupService: ExecuteJob()
 
-    BackupService->>BackupJob: GetType()
-    BackupJob-->>BackupService: DIFFERENTIAL
+   BackupService->>BackupService: Check job.Type == Differential
 
     loop For each file in source
         BackupService->>BackupService: IsFileModified()
@@ -384,8 +375,8 @@ sequenceDiagram
         end
     end
 
-    BackupService-->>MainViewModel: Backup completed
-    MainViewModel-->>MainWindow: Update status
+    BackupService-->>HomeViewModel: Backup completed
+    HomeViewModel-->>MainWindow: Update status
 ```
 
 ## 8. Activity diagram

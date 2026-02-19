@@ -27,8 +27,7 @@ EasySave provides a console-based backup application (V1) with planned evolution
 ````
 EasySave/
 ├── Diagrams/
-│   ├── UML.md                       # UML diagrams V1
-│   └── UMLv2.md                     # UML diagrams V2
+│   └── UML.md                     # # Current Architecture Diagrams (V2)
 ├── EasySave/                        # Console Application (V1)
 │   ├── Program.cs                   # Entry point (Controller - MVC)
 │   ├── Localization/
@@ -46,6 +45,7 @@ EasySave/
 │   ├── ILogger.cs                   # Logger interface (ISP)
 │   ├── Logger.cs                    # Logger implementation
 │   └── LogData.cs                   # Log data model
+│   └── Integration-guide.md         
 ├── EasySave.AvaloniaApp/            # GUI Application (V2 - MVVM)
 │   ├── ViewModels/                  # MVVM ViewModels
 │   └── Views/                       # MVVM Views
@@ -53,6 +53,13 @@ EasySave/
 ````
 
 ---
+
+## EasyLog DLL
+
+EasyLog is a standalone class library that handles all log writing for EasySave. It is versioned and distributed independently of the main application.
+
+> **Full integration guide:** [EasyLog/Integration-guide.md](EasyLog/Integration-guide.md)
+
 
 ## Solution Architecture
 The solution is divided into several projects to adhere to the Separation of Concerns principle:
@@ -216,9 +223,9 @@ dotnet run -- 1-3
 ## Documentation and Deliverables
 
 ### UML Diagrams
-Click the link below to view the design documentation:
+Our documentation uses a "living document" approach. The UML diagrams file always reflects the architecture of the latest active deliverable (currently **V2.0**).
 
-* [**View Project Documentation (UML - Draft)**](Diagrams/UML.md)
+* [**View Current Project Architecture (UML)**](Diagrams/UML.md)
 
 ### Release (Download)
 Access the compiled version for evaluation below:

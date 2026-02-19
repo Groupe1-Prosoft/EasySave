@@ -62,38 +62,48 @@ namespace EasySave.Localization
             ["Processing"] = "Processing: {0} ({1} files)...",
             ["FileCopied"] = " -> {0} copied.",
             ["CopyError"] = "Copy error: {0}",
-
             // Avalonia GUI keys
+            ["AppTitle"] = "EasySave",
             ["NavHome"] = "Home",
             ["NavLogs"] = "Logs",
             ["NavSettings"] = "Settings",
-            ["HomeTitle"] = "Backup Jobs",
-            ["HomeNewJob"] = "Create New Job",
-            ["HomeJobList"] = "Job List",
-            ["HomeNoJobs"] = "No backup jobs configured yet.",
             ["LabelName"] = "Name",
-            ["LabelType"] = "Type",
             ["LabelSource"] = "Source",
             ["LabelTarget"] = "Target",
+            ["LabelType"] = "Type",
             ["TypeFull"] = "Full",
             ["TypeDifferential"] = "Differential",
             ["BtnCreate"] = "Create",
-            ["BtnBrowse"] = "Browse",
-            ["BtnExecuteAll"] = "Execute All",
-            ["BtnRefresh"] = "Refresh",
+            ["BtnExecute"] = "Execute",
+            ["BtnExecuteAll"] = "Execute all",
+            ["BtnDelete"] = "Delete",
             ["BtnSave"] = "Save",
-            ["JobSuccess"] = "Operation completed successfully!",
-            ["JobError"] = "Operation failed.",
-            ["JobExecuting"] = "Executing...",
+            ["BtnRefresh"] = "Refresh",
+            ["BtnBrowse"] = "Browse...",
+            ["HomeTitle"] = "Backup Management",
+            ["HomeNewJob"] = "New Backup Job",
+            ["HomeJobList"] = "Backup Jobs",
+            ["HomeNoJobs"] = "No backup jobs configured.",
             ["SettingsTitle"] = "Settings",
             ["SettingsCryptoPath"] = "CryptoSoft Path",
-            ["SettingsExtensions"] = "Extensions to Encrypt",
+            ["SettingsExtensions"] = "Extensions to Encrypt (comma-separated)",
             ["SettingsBusinessSoft"] = "Business Software Name",
             ["SettingsLogFormat"] = "Log Format",
             ["SettingsSaved"] = "Settings saved!",
-            ["LogsTitle"] = "Daily Logs",
-            ["LogsNoLogs"] = "No logs found.",
-
+            ["LogsTitle"] = "Log History",
+            ["LogsNoLogs"] = "No log files found.",
+            ["LogColDate"] = "Date",
+            ["LogColName"] = "Name",
+            ["LogColSource"] = "Source",
+            ["LogColTarget"] = "Target",
+            ["LogColSize"] = "Size (bytes)",
+            ["LogColTransfer"] = "Transfer (ms)",
+            ["LogColEncrypt"] = "Encrypt (ms)",
+            ["LangFR"] = "FR",
+            ["LangEN"] = "EN",
+            ["JobExecuting"] = "Executing...",
+            ["JobSuccess"] = "Backup completed successfully!",
+            ["JobError"] = "Backup failed.",
         };
 
         /// <summary>
@@ -140,42 +150,57 @@ namespace EasySave.Localization
             ["Processing"] = "Traitement de : {0} ({1} fichiers)...",
             ["FileCopied"] = " -> {0} copié.",
             ["CopyError"] = "Erreur copie : {0}",
-
             // Avalonia GUI keys
+            ["AppTitle"] = "EasySave",
             ["NavHome"] = "Accueil",
-            ["NavLogs"] = "Logs",
+            ["NavLogs"] = "Journal",
             ["NavSettings"] = "Paramètres",
-            ["HomeTitle"] = "Tâches de sauvegarde",
-            ["HomeNewJob"] = "Créer une nouvelle tâche",
-            ["HomeJobList"] = "Liste des tâches",
-            ["HomeNoJobs"] = "Aucune tâche de sauvegarde configurée.",
             ["LabelName"] = "Nom",
-            ["LabelType"] = "Type",
             ["LabelSource"] = "Source",
-            ["LabelTarget"] = "Destination",
+            ["LabelTarget"] = "Cible",
+            ["LabelType"] = "Type",
             ["TypeFull"] = "Complète",
             ["TypeDifferential"] = "Différentielle",
             ["BtnCreate"] = "Créer",
-            ["BtnBrowse"] = "Parcourir",
+            ["BtnExecute"] = "Exécuter",
             ["BtnExecuteAll"] = "Tout exécuter",
-            ["BtnRefresh"] = "Actualiser",
-            ["BtnSave"] = "Enregistrer",
-            ["JobSuccess"] = "Opération terminée avec succès !",
-            ["JobError"] = "Échec de l'opération.",
-            ["JobExecuting"] = "Exécution en cours...",
+            ["BtnDelete"] = "Supprimer",
+            ["BtnSave"] = "Sauvegarder",
+            ["BtnRefresh"] = "Rafraîchir",
+            ["BtnBrowse"] = "Parcourir...",
+            ["HomeTitle"] = "Gestion des sauvegardes",
+            ["HomeNewJob"] = "Nouvelle tâche de sauvegarde",
+            ["HomeJobList"] = "Tâches de sauvegarde",
+            ["HomeNoJobs"] = "Aucune tâche de sauvegarde configurée.",
             ["SettingsTitle"] = "Paramètres",
             ["SettingsCryptoPath"] = "Chemin CryptoSoft",
-            ["SettingsExtensions"] = "Extensions à crypter",
+            ["SettingsExtensions"] = "Extensions à chiffrer (séparées par des virgules)",
             ["SettingsBusinessSoft"] = "Nom du logiciel métier",
             ["SettingsLogFormat"] = "Format des logs",
-            ["SettingsSaved"] = "Paramètres enregistrés !",
-            ["LogsTitle"] = "Logs journaliers",
-            ["LogsNoLogs"] = "Aucun log trouvé.",
-
+            ["SettingsSaved"] = "Paramètres sauvegardés !",
+            ["LogsTitle"] = "Historique des logs",
+            ["LogsNoLogs"] = "Aucun fichier de log trouvé.",
+            ["LogColDate"] = "Date",
+            ["LogColName"] = "Nom",
+            ["LogColSource"] = "Source",
+            ["LogColTarget"] = "Cible",
+            ["LogColSize"] = "Taille (octets)",
+            ["LogColTransfer"] = "Transfert (ms)",
+            ["LogColEncrypt"] = "Chiffrement (ms)",
+            ["LangFR"] = "FR",
+            ["LangEN"] = "EN",
+            ["JobExecuting"] = "Exécution en cours...",
+            ["JobSuccess"] = "Sauvegarde terminée avec succès !",
+            ["JobError"] = "Échec de la sauvegarde.",
         };
 
 
         private static readonly Lazy<LanguageManager> _instance = new(() => new LanguageManager());
+
+        /// <summary>
+        /// Lock object used to synchronise all read/write access to mutable state.
+        /// </summary>
+        private readonly object _lock = new();
 
         /// <summary>
         /// Gets the single shared instance of LanguageManager.
@@ -183,9 +208,12 @@ namespace EasySave.Localization
         public static LanguageManager Instance => _instance.Value;
 
         /// <summary>
-        /// Gets the current language code.
+        /// Gets the current language code (thread-safe).
         /// </summary>
-        public string CurrentLanguage => _currentLanguage;
+        public string CurrentLanguage
+        {
+            get { lock (_lock) { return _currentLanguage; } }
+        }
 
         /// <summary>
         /// Private constructor — use Instance instead.
@@ -201,8 +229,11 @@ namespace EasySave.Localization
         /// </summary>
         public void SetLanguage(string lang)
         {
-            _currentLanguage = lang.ToLower();
-            LoadTranslations();
+            lock (_lock)
+            {
+                _currentLanguage = lang.ToLower();
+                LoadTranslationsUnsafe();
+            }
         }
 
         /// <summary>
@@ -210,11 +241,12 @@ namespace EasySave.Localization
         /// </summary>
         public string GetText(string key)
         {
-            if (_translations.TryGetValue(key, out string? value))
+            lock (_lock)
             {
-                return value;
+                if (_translations.TryGetValue(key, out string? value))
+                    return value;
+                return key;
             }
-            return key;
         }
 
         /// <summary>
@@ -228,15 +260,28 @@ namespace EasySave.Localization
 
         /// <summary>
         /// Loads the translation dictionary for the current language.
+        /// Must be called from within a lock(_lock) block.
         /// </summary>
         public bool LoadTranslations()
+        {
+            lock (_lock)
+            {
+                LoadTranslationsUnsafe();
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Inner helper — swaps the dictionary reference.
+        /// Caller is responsible for holding _lock before calling this.
+        /// </summary>
+        private void LoadTranslationsUnsafe()
         {
             _translations = _currentLanguage switch
             {
                 "fr" => FrenchTranslations,
                 _ => EnglishTranslations
             };
-            return true;
         }
     }
 }

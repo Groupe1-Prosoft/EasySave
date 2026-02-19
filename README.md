@@ -54,6 +54,13 @@ EasySave/
 
 ---
 
+## EasyLog DLL
+
+EasyLog is a standalone class library that handles all log writing for EasySave. It is versioned and distributed independently of the main application.
+
+> **Full integration guide:** [EasyLog/Integration-guide.md](EasyLog/Integration-guide.md)
+
+
 ## Solution Architecture
 The solution is divided into several projects to adhere to the Separation of Concerns principle:
 1.  **EasySave (Console App):** Application entry point, menu management, and execution.
@@ -218,7 +225,7 @@ dotnet run -- 1-3
 ### UML Diagrams
 Click the link below to view the design documentation:
 
-* [**View Project Documentation (UML v2.0 - Draft)**](Diagrams/UML.md)
+* [**View Project Documentation (UML - Draft)**](Diagrams/UML.md)
 
 ### Release (Download)
 Access the compiled version for evaluation below:

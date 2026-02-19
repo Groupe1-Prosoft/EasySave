@@ -1,5 +1,5 @@
 
-#  Diagrams EasySave 1.0 - Livrable 1
+#  Diagrams EasySave 2.0 - Livrable 2
 
 ### Before writing code, the most critical is to have a clear and comprehensive understanding of the application's architecture. Rushing into implementation without proper planning often leads to a mid structured code, technical debt, and costly refactoring later in the project lifecycle.
 

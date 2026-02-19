@@ -129,8 +129,8 @@ var lang = LanguageManager.Instance;
 lang.SetLanguage("fr");
 string text = lang.GetText("Goodbye"); // "Au revoir !"
 ```
-
 **Advantages:**
+
 Guarantees a single instance across the application
 Thread-safe instantiation via Lazy<T>
 Thread-safe access via lock — SetLanguage(), GetText(), and CurrentLanguage are synchronized so no thread can observe a partially-updated state (e.g., language code changed but dictionary not yet swapped)
@@ -201,25 +201,29 @@ feat/*: Working branch for each task
 
     ___
 
-## Installation & Usage
-1.  Clone the repository: `git clone https://github.com/yyyanis/EasySave.git`
-2.  Open the `.sln` file in Visual Studio.
-3.  Ensure the startup project is set to **EasySave**.
-4.  Build and Start (F5).
-5. If you're running on vs code or anything else type this command to run it on the terminal : dotnet run --project EasySave
-6. To run the job in the command line way paste this commad on command line : 
+## Installation & Quick Start
 
-dotnet build
+### Prerequisites
+* [.NET 8.0 SDK](https://dotnet.microsoft.com/download)
 
-Execute first job :
-dotnet run -- 1
+### Run the Application
+1. Clone the repository: 
+   ```bash
+   git clone [https://github.com/Groupe1-Prosoft/EasySave.git](https://github.com/Groupe1-Prosoft/EasySave.git)
 
-Execute jobs 1 to 3 :
-dotnet run -- 1-3   
+2. Navigate to the project directory:
 
- Execute jobs 1 and 3 :
- dotnet run -- "1;3"
-  
+cd EasySave
+
+3. Run the console application:
+   
+   dotnet run --project EasySave
+   
+User Guide
+For detailed instructions on how to navigate the menus, configure backups, and use the Command Line Interface (CLI) parameters, please refer to our dedicated documentation:
+
+Read the EasySave User Guide
+
 ## Documentation and Deliverables
 
 ### UML Diagrams

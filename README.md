@@ -27,7 +27,7 @@ EasySave provides a console-based backup application (V1) with planned evolution
 ````
 EasySave/
 ├── Diagrams/
-│   └── UML.md                     # # Current Architecture Diagrams (V2)
+│   └── UML.md                       # Current Architecture Diagrams (V2)
 ├── EasySave/                        # Console Application (V1)
 │   ├── Program.cs                   # Entry point (Controller - MVC)
 │   ├── Localization/

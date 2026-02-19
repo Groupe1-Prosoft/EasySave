@@ -46,6 +46,7 @@ EasySave/
 │   ├── ILogger.cs                   # Logger interface (ISP)
 │   ├── Logger.cs                    # Logger implementation
 │   └── LogData.cs                   # Log data model
+│   └── Integration-guide.md         
 ├── EasySave.AvaloniaApp/            # GUI Application (V2 - MVVM)
 │   ├── ViewModels/                  # MVVM ViewModels
 │   └── Views/                       # MVVM Views

@@ -131,11 +131,11 @@ string text = lang.GetText("Goodbye"); // "Au revoir !"
 ```
 
 **Advantages:**
-
--Guarantees a single instance across the application
--Thread-safe with Lazy<T> initialization
--Global access without passing references everywhere
--Prevents inconsistent language state
+Guarantees a single instance across the application
+Thread-safe instantiation via Lazy<T>
+Thread-safe access via lock — SetLanguage(), GetText(), and CurrentLanguage are synchronized so no thread can observe a partially-updated state (e.g., language code changed but dictionary not yet swapped)
+Global access without passing references everywhere
+Prevents inconsistent language state
 
 ## Facade Pattern (BackupService)
 The `BackupService` acts as a Facade, hiding the complexity of file operations, state management, and logging behind a simple interface.

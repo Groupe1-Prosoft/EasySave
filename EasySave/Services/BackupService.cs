@@ -10,31 +10,32 @@ namespace EasySave.Services
 {
     /// <summary>
     /// Manages backup execution and logging.
+    /// Dependencies are NOW INJECTED (not created inside constructor).
+    /// This enables true Dependency Injection: BackupService doesn't control object creation.
     /// </summary>
     public class BackupService
     {
-        private readonly ILogger logger;
-        private readonly Configuration configuration;
-
-        // Respecting the class diagram: explicit dependency
-        private readonly CryptoSoftService cryptoSoftService;
-        private readonly BusinessSoftwareMonitor businessMonitor;
-        private BackupState? currentState;
+        private readonly ILogger _logger;
+        private readonly Configuration _configuration;
+        private readonly CryptoSoftService _cryptoSoftService;
+        private readonly BusinessSoftwareMonitor _businessMonitor;
+        private BackupState? _currentState;
 
         /// <summary>
-        /// Initializes the service with configuration.
+        /// Initializes the service with ALL dependencies injected (not created inside).
+        /// This is TRUE Dependency Injection: all objects come from outside.
+        /// Goal: Decouple BackupService from object creation responsibility.
         /// </summary>
-        public BackupService(Configuration configuration)
+        public BackupService(
+            Configuration configuration,
+            ILogger logger,
+            CryptoSoftService cryptoSoftService,
+            BusinessSoftwareMonitor businessMonitor)
         {
-            this.configuration = configuration;
-            logger = new Logger(configuration.LogFormat);
-
-            // Initialize the sub-services
-            businessMonitor = new BusinessSoftwareMonitor();
-            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
-
-            cryptoSoftService = new CryptoSoftService();
-            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
+            _configuration = configuration;
+            _logger = logger;
+            _cryptoSoftService = cryptoSoftService;
+            _businessMonitor = businessMonitor;
         }
 
         /// <summary>
@@ -43,15 +44,12 @@ namespace EasySave.Services
         public bool ExecuteJob(BackupJob job)
         {
             // Update CryptoSoft path in case config changed at runtime
-            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
-            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+            _cryptoSoftService.SetPath(_configuration.CryptoSoftPath);
+            _businessMonitor.SetProcessName(_configuration.GetBusinessSoftwareName());
 
             if (!job.Validate()) return false;
 
-            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
-
-
-            if (businessMonitor.IsRunning())
+            if (_businessMonitor.IsRunning())
             {
                 var blockLog = new LogData
                 {
@@ -63,7 +61,7 @@ namespace EasySave.Services
                     TransferTime = 0,
                     EncryptionTime = -1
                 };
-                logger.WriteLog(blockLog);
+                _logger.WriteLog(blockLog);
                 return false;
             }
 
@@ -72,7 +70,7 @@ namespace EasySave.Services
             var files = GetFileList(job.SourceDir!);
             long totalSize = CalculateTotalSize(files);
 
-            currentState = new BackupState
+            _currentState = new BackupState
             {
                 JobName = job.Name,
                 Timestamp = DateTime.Now,
@@ -84,7 +82,7 @@ namespace EasySave.Services
                 Progression = 0
             };
 
-            currentState.UpdateStateJSON();
+            _currentState.UpdateStateJSON();
 
             int processed = 0;
             foreach (var file in files)
@@ -97,22 +95,19 @@ namespace EasySave.Services
                     if (File.GetLastWriteTimeUtc(file) <= File.GetLastWriteTimeUtc(targetFile))
                     {
                         processed++;
-                        currentState.FilesRemaining--;
-                        currentState.SizeRemaining -= new FileInfo(file).Length;
+                        _currentState.FilesRemaining--;
+                        _currentState.SizeRemaining -= new FileInfo(file).Length;
                         UpdateProgress(processed, files.Count);
                         continue;
                     }
                 }
 
-                // New logic compliant with Class Diagram
                 long transferTime = CopyFile(file, targetFile);
                 long encryptionTime = 0;
 
-                // Check eligibility using the service
-                if (cryptoSoftService.IsEligible(targetFile, configuration.ExtensionsToEncrypt))
+                if (_cryptoSoftService.IsEligible(targetFile, _configuration.ExtensionsToEncrypt))
                 {
-                    // Encrypt using the service
-                    long time = cryptoSoftService.EncryptFile(targetFile);
+                    long time = _cryptoSoftService.EncryptFile(targetFile);
                     if (time >= 0) encryptionTime = time;
                 }
 
@@ -127,17 +122,17 @@ namespace EasySave.Services
                     EncryptionTime = encryptionTime
                 };
 
-                logger.WriteLog(data);
+                _logger.WriteLog(data);
 
                 processed++;
-                currentState.FilesRemaining--;
-                currentState.SizeRemaining -= data.Size;
+                _currentState.FilesRemaining--;
+                _currentState.SizeRemaining -= data.Size;
                 UpdateProgress(processed, files.Count);
             }
 
-            currentState.State = "NON ACTIF";
-            currentState.Timestamp = DateTime.Now;
-            currentState.UpdateStateJSON();
+            _currentState.State = "NON ACTIF";
+            _currentState.Timestamp = DateTime.Now;
+            _currentState.UpdateStateJSON();
 
             return true;
         }
@@ -148,65 +143,55 @@ namespace EasySave.Services
         public bool ExecuteSequential(List<int> ids)
         {
             bool success = true;
-            var jobs = configuration.GetJobs();
-
             foreach (int id in ids)
             {
+                var jobs = _configuration.GetJobs();
                 var job = jobs.FirstOrDefault(j => j.Id == id);
-                if (job == null)
+                if (job != null)
                 {
-                    success = false;
-                    continue;
+                    success &= ExecuteJob(job);
                 }
-                businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
-
-
-                if (businessMonitor.IsRunning()) break;
-
-                if (!ExecuteJob(job)) success = false;
-
             }
-
             return success;
         }
 
-        private long CopyFile(string source, string dest)
+        /// <summary>
+        /// Copies a single file and returns the transfer time in milliseconds.
+        /// </summary>
+        private long CopyFile(string source, string target)
         {
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                File.Copy(source, dest, true);
-                stopwatch.Stop();
-                return stopwatch.ElapsedMilliseconds;
-            }
-            catch
-            {
-                return -1;
-            }
+            var stopwatch = Stopwatch.StartNew();
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(source, target, overwrite: true);
+            stopwatch.Stop();
+            return stopwatch.ElapsedMilliseconds;
         }
 
-        private List<string> GetFileList(string directory)
+        /// <summary>
+        /// Returns all files in the source directory (recursive).
+        /// </summary>
+        private List<string> GetFileList(string sourceDir)
         {
-            return Directory.GetFiles(directory, "*", SearchOption.AllDirectories).ToList();
+            if (!Directory.Exists(sourceDir)) return new List<string>();
+            return Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories).ToList();
         }
 
+        /// <summary>
+        /// Calculates total size of all files in the list.
+        /// </summary>
         private long CalculateTotalSize(List<string> files)
         {
-            long size = 0;
-            foreach (var file in files)
-            {
-                size += new FileInfo(file).Length;
-            }
-            return size;
+            return files.Sum(f => new FileInfo(f).Length);
         }
 
-        private void UpdateProgress(int current, int total)
+        /// <summary>
+        /// Updates backup progress.
+        /// </summary>
+        private void UpdateProgress(int processed, int total)
         {
-            if (currentState == null) return;
-            currentState.Progression = total == 0 ? 0 : (int)((current * 100.0) / total);
-            currentState.Timestamp = DateTime.Now;
-            currentState.UpdateStateJSON();
+            if (_currentState == null) return;
+            _currentState.Progression = (int)((processed / (double)total) * 100);
+            _currentState.UpdateStateJSON();
         }
     }
 }

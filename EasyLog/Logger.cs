@@ -13,6 +13,7 @@ namespace EasyLog
     {
         private string logFilePath;
         private string logFormat;
+        private readonly object _lock = new();
 
         /// <summary>
         /// Initializes the logger with the desired log format.
@@ -42,8 +43,10 @@ namespace EasyLog
         /// </summary>
         public bool WriteLog(LogData data)
         {
-            try
+            lock (_lock)
             {
+                try
+                {
                 logFilePath = CreateDailyLogFile();
 
                 if (logFormat == "xml")
@@ -84,11 +87,12 @@ namespace EasyLog
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 File.WriteAllText(logFilePath, JsonSerializer.Serialize(jsonLogs, options));
 
-                return true;
-            }
-            catch
-            {
-                return false;
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
     }

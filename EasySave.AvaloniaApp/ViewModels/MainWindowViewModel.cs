@@ -10,7 +10,7 @@ namespace EasySave.AvaloniaApp.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly Configuration _configuration;
-    private readonly BackupService _backupService;
+    private readonly IBackupService _backupService;
 
     // Child view models
     private readonly HomeViewModel _homeViewModel;

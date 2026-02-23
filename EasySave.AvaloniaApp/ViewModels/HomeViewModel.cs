@@ -27,7 +27,7 @@ public partial class SelectableJob : ObservableObject
 public partial class HomeViewModel : ViewModelBase
 {
     private readonly Configuration _configuration;
-    private readonly BackupService _backupService;
+    private readonly IBackupService _backupService;
 
     public ObservableCollection<SelectableJob> Jobs { get; } = new();
 
@@ -51,7 +51,7 @@ public partial class HomeViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isExecuting;
 
-    public HomeViewModel(Configuration configuration, BackupService backupService)
+    public HomeViewModel(Configuration configuration, IBackupService backupService)
     {
         _configuration = configuration;
         _backupService = backupService;

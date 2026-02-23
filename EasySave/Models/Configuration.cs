@@ -111,28 +111,29 @@ namespace EasySave.Models
             lock (_lock)
             {
                 try
-            {
-                string path = GetConfigFullPath();
-                if (!File.Exists(path)) return true;
+                {
+                    string path = GetConfigFullPath();
+                    if (!File.Exists(path)) return true;
 
-                string json = File.ReadAllText(path);
-                var data = JsonSerializer.Deserialize<ConfigurationData>(json);
+                    string json = File.ReadAllText(path);
+                    var data = JsonSerializer.Deserialize<ConfigurationData>(json);
 
-                jobs.Clear();
-                if (data?.Jobs != null) jobs.AddRange(data.Jobs);
+                    jobs.Clear();
+                    if (data?.Jobs != null) jobs.AddRange(data.Jobs);
 
-                SetLogFormat(data?.LogFormat ?? "json");
-                SetBusinessSoftwareName(data?.BusinessSoftwareName ?? string.Empty);
+                    SetLogFormat(data?.LogFormat ?? "json");
+                    SetBusinessSoftwareName(data?.BusinessSoftwareName ?? string.Empty);
 
-                // Chargement des extensions et du chemin CryptoSoft
-                CryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
-                SetEncryptExtensions(data?.ExtensionsToEncrypt ?? new List<string>());
+                    // Chargement des extensions et du chemin CryptoSoft
+                    CryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
+                    SetEncryptExtensions(data?.ExtensionsToEncrypt ?? new List<string>());
 
-                return true;
-            }
-            catch
-            {
-                return false;
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
 
@@ -140,30 +141,30 @@ namespace EasySave.Models
         {
             lock (_lock)
             {
-               try
-               {
-                string path = GetConfigFullPath();
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-
-                var data = new ConfigurationData
+                try
                 {
-                    Jobs = jobs,
-                    LogFormat = logFormat,
-                    BusinessSoftwareName = businessSoftwareName,
-                    CryptoSoftPath = CryptoSoftPath,
-                    ExtensionsToEncrypt = encryptExtensions
-                };
+                    string path = GetConfigFullPath();
+                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(path, JsonSerializer.Serialize(data, options));
-                return true;
-            }
-            catch
-            {
-                return false;
+                    var data = new ConfigurationData
+                    {
+                        Jobs = jobs,
+                        LogFormat = logFormat,
+                        BusinessSoftwareName = businessSoftwareName,
+                        CryptoSoftPath = CryptoSoftPath,
+                        ExtensionsToEncrypt = encryptExtensions
+                    };
+
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    File.WriteAllText(path, JsonSerializer.Serialize(data, options));
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
-
         private static string GetConfigFullPath()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);

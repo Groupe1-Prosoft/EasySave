@@ -20,6 +20,7 @@ namespace EasySave.Models
 
         // Note: Le diagramme nomme ceci 'encryptExtensions' en privé
         private List<string> encryptExtensions = new();
+        private readonly object _lock = new();
 
         // On garde CryptoSoftPath pour que ça marche (implémentation nécessaire)
         public string CryptoSoftPath { get; set; } = string.Empty;
@@ -107,7 +108,9 @@ namespace EasySave.Models
 
         public bool LoadConfig()
         {
-            try
+            lock (_lock)
+            {
+                try
             {
                 string path = GetConfigFullPath();
                 if (!File.Exists(path)) return true;
@@ -135,8 +138,10 @@ namespace EasySave.Models
 
         public bool SaveConfig()
         {
-            try
+            lock (_lock)
             {
+               try
+               {
                 string path = GetConfigFullPath();
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 

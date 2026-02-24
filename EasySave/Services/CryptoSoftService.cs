@@ -9,6 +9,9 @@ namespace EasySave.Services
     {
         private string cryptoSoftPath;
 
+        // Prevents multiple files from being encrypted at the same time
+        private readonly System.Threading.SemaphoreSlim _cryptoSemaphore = new System.Threading.SemaphoreSlim(1, 1);
+
         public CryptoSoftService()
         {
             cryptoSoftPath = string.Empty;
@@ -23,17 +26,30 @@ namespace EasySave.Services
         // Checks if a file should be encrypted based on its extension
         public bool IsEligible(string filePath, List<string> extensions)
         {
-            // If the path is empty or there are no extensions, we don't encrypt
+            // If the path is empty or there are no extensions, do not encrypt
             if (string.IsNullOrEmpty(filePath) || extensions == null || extensions.Count == 0)
                 return false;
 
-            // Get the extension of the file, including the dot (example: ".txt")
+            // Get the extension of the file
             string fileExtension = Path.GetExtension(filePath);
 
-            // Check if the extension is in the list, supporting both "txt" and ".txt" formats
+            // Check if the extension is in the list
             return extensions.Exists(e =>
                 e.Equals(fileExtension, StringComparison.OrdinalIgnoreCase) ||
                 ("." + e).Equals(fileExtension, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Waits for its turn before allowing access to CryptoSoft
+        public bool AcquireLock()
+        {
+            _cryptoSemaphore.Wait();
+            return true;
+        }
+
+        // Releases the lock so the next process can use CryptoSoft
+        public void ReleaseLock()
+        {
+            _cryptoSemaphore.Release();
         }
 
         // Encrypts the file using CryptoSoft and returns the time it took
@@ -71,7 +87,7 @@ namespace EasySave.Services
             }
             catch
             {
-                // Return -1 if an error happens during the process
+                // Return -1 if an error happens
                 return -1;
             }
         }

@@ -9,12 +9,16 @@ using EasySave.Models;
 
 namespace EasySave.Services
 {
+<<<<<<< HEAD
     /// <summary>
     /// Manages backup execution and logging.
     /// Dependencies are NOW INJECTED (not created inside constructor).
     /// This enables true Dependency Injection: BackupService doesn't control object creation.
     /// </summary>
     public class BackupService
+=======
+    public class BackupService : IBackupService
+>>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
     {
         private readonly ILogger _logger;
         private readonly Configuration _configuration;
@@ -29,11 +33,7 @@ namespace EasySave.Services
         private readonly SemaphoreSlim _largeFileSemaphore = new SemaphoreSlim(1, 1);
 
 
-        /// <summary>
-        /// Initializes the service with ALL dependencies injected (not created inside).
-        /// This is TRUE Dependency Injection: all objects come from outside.
-        /// Goal: Decouple BackupService from object creation responsibility.
-        /// </summary>
+        // Dependencies are injected from outside to decouple object creation
         public BackupService(
             Configuration configuration,
             ILogger logger,
@@ -46,6 +46,7 @@ namespace EasySave.Services
             _businessMonitor = businessMonitor;
         }
 
+<<<<<<< HEAD
         /// <summary>
         /// Gets whether the backup is currently paused.
         /// </summary>
@@ -101,6 +102,18 @@ namespace EasySave.Services
             InitializeExecution();
 
             try
+=======
+        public bool ExecuteJob(BackupJob job)
+        {
+            // Sync tool paths and business software name with current configuration
+            _cryptoSoftService.SetPath(_configuration.CryptoSoftPath);
+            _businessMonitor.SetProcessName(_configuration.GetBusinessSoftwareName());
+
+            if (!job.Validate()) return false;
+
+            // Block execution if business software is running
+            if (_businessMonitor.IsRunning())
+>>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
             {
                 _cryptoSoftService.SetPath(_configuration.CryptoSoftPath);
                 _businessMonitor.SetProcessName(_configuration.GetBusinessSoftwareName());
@@ -109,7 +122,52 @@ namespace EasySave.Services
 
                 if (_businessMonitor.IsRunning())
                 {
+<<<<<<< HEAD
                     var blockLog = new LogData
+=======
+                    Timestamp = DateTime.Now,
+                    Name = job.Name ?? string.Empty,
+                    Source = job.SourceDir ?? string.Empty,
+                    Target = job.TargetDir ?? string.Empty,
+                    Size = 0,
+                    TransferTime = 0,
+                    EncryptionTime = -1
+                };
+                _logger.WriteLog(blockLog);
+                return false;
+            }
+
+            if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
+
+            var files = GetFileList(job.SourceDir!);
+            long totalSize = CalculateTotalSize(files);
+
+            // Initialize the state for progress tracking
+            _currentState = new BackupState
+            {
+                JobName = job.Name,
+                Timestamp = DateTime.Now,
+                State = "ACTIF",
+                TotalFiles = files.Count,
+                TotalSize = totalSize,
+                FilesRemaining = files.Count,
+                SizeRemaining = totalSize,
+                Progression = 0
+            };
+
+            _currentState.UpdateStateJSON();
+
+            int processed = 0;
+            foreach (var file in files)
+            {
+                string relative = Path.GetRelativePath(job.SourceDir!, file);
+                string targetFile = Path.Combine(job.TargetDir!, relative);
+
+                // Skip file if differential backup conditions are not met
+                if (job.Type == BackupType.Differential && File.Exists(targetFile))
+                {
+                    if (File.GetLastWriteTimeUtc(file) <= File.GetLastWriteTimeUtc(targetFile))
+>>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
                     {
                         Timestamp = DateTime.Now,
                         Name = job.Name ?? string.Empty,
@@ -125,13 +183,36 @@ namespace EasySave.Services
 
                 if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
 
+<<<<<<< HEAD
                 var files = GetFileList(job.SourceDir!);
                 long totalSize = CalculateTotalSize(files);
 
                 _currentState = new BackupState
+=======
+                // Handle encryption with lock management for safe execution
+                if (_cryptoSoftService.IsEligible(targetFile, _configuration.ExtensionsToEncrypt))
+                {
+                    _cryptoSoftService.AcquireLock();
+                    try
+                    {
+                        var cryptoWatch = Stopwatch.StartNew();
+                        _cryptoSoftService.EncryptFile(targetFile);
+                        cryptoWatch.Stop();
+                        encryptionTime = cryptoWatch.ElapsedMilliseconds;
+                    }
+                    finally
+                    {
+                        _cryptoSoftService.ReleaseLock();
+                    }
+                }
+
+                // Log file transfer and encryption details
+                var data = new LogData
+>>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
                 {
                     JobName = job.Name,
                     Timestamp = DateTime.Now,
+<<<<<<< HEAD
                     State = "ACTIF",
                     TotalFiles = files.Count,
                     TotalSize = totalSize,
@@ -140,6 +221,29 @@ namespace EasySave.Services
                     Progression = 0
                 };
 
+=======
+                    Name = job.Name ?? string.Empty,
+                    Source = file,
+                    Target = targetFile,
+                    Size = new FileInfo(file).Length,
+                    TransferTime = transferTime,
+                    EncryptionTime = encryptionTime
+                };
+
+                _logger.WriteLog(data);
+
+                processed++;
+                _currentState.FilesRemaining--;
+                _currentState.SizeRemaining -= data.Size;
+                UpdateProgress(processed, files.Count);
+            }
+
+            // Mark the job as inactive when finished
+            if (_currentState != null)
+            {
+                _currentState.State = "NON ACTIF";
+                _currentState.Timestamp = DateTime.Now;
+>>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
                 _currentState.UpdateStateJSON();
 
                 int processed = 0;
@@ -223,9 +327,6 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Executes several jobs sequentially by their identifiers.
-        /// </summary>
         public bool ExecuteSequential(List<int> ids)
         {
             bool success = true;
@@ -246,9 +347,6 @@ namespace EasySave.Services
             return success && !_stopRequested;
         }
 
-        /// <summary>
-        /// Copies a single file and returns the transfer time in milliseconds.
-        /// </summary>
         private long CopyFile(string source, string target)
         {
             var stopwatch = Stopwatch.StartNew();
@@ -258,26 +356,17 @@ namespace EasySave.Services
             return stopwatch.ElapsedMilliseconds;
         }
 
-        /// <summary>
-        /// Returns all files in the source directory (recursive).
-        /// </summary>
         private List<string> GetFileList(string sourceDir)
         {
             if (!Directory.Exists(sourceDir)) return new List<string>();
             return Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories).ToList();
         }
 
-        /// <summary>
-        /// Calculates total size of all files in the list.
-        /// </summary>
         private long CalculateTotalSize(List<string> files)
         {
             return files.Sum(f => new FileInfo(f).Length);
         }
 
-        /// <summary>
-        /// Updates backup progress.
-        /// </summary>
         private void UpdateProgress(int processed, int total)
         {
             if (_currentState == null) return;

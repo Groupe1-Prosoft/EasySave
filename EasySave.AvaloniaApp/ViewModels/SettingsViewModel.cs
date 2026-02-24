@@ -29,6 +29,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
+    [ObservableProperty]
+    private long _maxLargeFileSizeKB;
+
+
     public SettingsViewModel(Configuration configuration)
     {
         _configuration = configuration;
@@ -42,6 +46,8 @@ public partial class SettingsViewModel : ViewModelBase
         ExtensionsText = string.Join(", ", _configuration.ExtensionsToEncrypt ?? new List<string>());
         BusinessSoftwareName = _configuration.GetBusinessSoftwareName();
         SelectedLogFormatIndex = (_configuration.LogFormat ?? "json").ToLower() == "xml" ? 1 : 0;
+        MaxLargeFileSizeKB = _configuration.MaxLargeFileSizeKB;
+
     }
 
     [RelayCommand]
@@ -56,6 +62,9 @@ public partial class SettingsViewModel : ViewModelBase
         _configuration.ExtensionsToEncrypt = extensions;
         _configuration.SetBusinessSoftwareName(BusinessSoftwareName);
         _configuration.LogFormat = SelectedLogFormatIndex == 1 ? "xml" : "json";
+        _configuration.MaxLargeFileSizeKB = MaxLargeFileSizeKB;
+
+
 
         _configuration.SaveConfig();
         StatusMessage = Loc["SettingsSaved"];

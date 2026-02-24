@@ -25,6 +25,9 @@ namespace EasySave.Models
         // We keep CryptoSoftPath to make it work (required implementation)
         public string CryptoSoftPath { get; set; } = string.Empty;
 
+        public long MaxLargeFileSizeKB { get; set; } = 0;
+
+
         // --- Methods matching the diagram ---
 
         public string GetBusinessSoftwareName()
@@ -128,6 +131,9 @@ namespace EasySave.Models
                     CryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
                     SetEncryptExtensions(data?.ExtensionsToEncrypt ?? new List<string>());
 
+                    MaxLargeFileSizeKB = data?.MaxLargeFileSizeKB ?? 0;
+
+
                     return true;
                 }
                 catch
@@ -152,7 +158,8 @@ namespace EasySave.Models
                         LogFormat = logFormat,
                         BusinessSoftwareName = businessSoftwareName,
                         CryptoSoftPath = CryptoSoftPath,
-                        ExtensionsToEncrypt = encryptExtensions
+                        ExtensionsToEncrypt = encryptExtensions,
+                        MaxLargeFileSizeKB = MaxLargeFileSizeKB
                     };
 
                     var options = new JsonSerializerOptions { WriteIndented = true };
@@ -179,6 +186,9 @@ namespace EasySave.Models
             public string BusinessSoftwareName { get; set; } = string.Empty;
             public string CryptoSoftPath { get; set; } = string.Empty;
             public List<string> ExtensionsToEncrypt { get; set; } = new();
+
+            public long MaxLargeFileSizeKB { get; set; } = 0;
+
         }
     }
 }

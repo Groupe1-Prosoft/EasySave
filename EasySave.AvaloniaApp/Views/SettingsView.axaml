@@ -89,6 +89,16 @@
                         </ComboBox>
                     </StackPanel>
 
+                    <!-- Max Large File Size -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Taille max fichier (Ko, 0 = désactivé)" FontSize="13" Foreground="#64748B"/>
+                        <NumericUpDown Value="{Binding MaxLargeFileSizeKB}"
+                                       Minimum="0" Increment="100"
+                                       FormatString="0"
+                                       CornerRadius="6"/>
+                    </StackPanel>
+
+
                     <!-- Save -->
                     <Button Classes="primary" Content="{Binding Loc[BtnSave]}"
                             Command="{Binding SaveCommand}" HorizontalAlignment="Left"/>

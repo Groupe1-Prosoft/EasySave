@@ -13,7 +13,7 @@ namespace EasySave.Services
     /// Dependencies are NOW INJECTED (not created inside constructor).
     /// This enables true Dependency Injection: BackupService doesn't control object creation.
     /// </summary>
-    public class BackupService
+    public class BackupService : IBackupService
     {
         private readonly ILogger _logger;
         private readonly Configuration _configuration;

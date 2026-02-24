@@ -125,11 +125,10 @@
                                     Orientation="Horizontal" Spacing="12">
                             <Button Classes="primary" Content="{Binding Loc[BtnCreate]}"
                                     Command="{Binding CreateJobCommand}"/>
-                            <Button Classes="primary" Content="{Binding Loc[BtnExecuteAll]}"
-                                    Command="{Binding ExecuteSelectedCommand}"
-
-                                    IsEnabled="{Binding !IsExecuting}"/>
-                        </StackPanel>
+							<Button Classes="primary" Content="{Binding Loc[BtnExecuteAll]}"
+								  Command="{Binding ExecuteSelectedCommand}"
+								  IsEnabled="{Binding !IsExecuting}"/>
+						</StackPanel>
                     </Grid>
                 </StackPanel>
             </Border>

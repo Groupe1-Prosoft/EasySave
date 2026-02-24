@@ -13,19 +13,19 @@ namespace EasySave.Models
     {
         private const string configFilePath = "config.json";
 
-        // Attributs privés (comme sur le diagramme)
+        // Private attributes (as seen in the diagram)
         private readonly List<BackupJob> jobs = new();
         private string logFormat = "json";
         private string businessSoftwareName = string.Empty;
 
-        // Note: Le diagramme nomme ceci 'encryptExtensions' en privé
+        // Note: The diagram calls this private attribute 'encryptExtensions'
         private List<string> encryptExtensions = new();
         private readonly object _lock = new();
 
-        // On garde CryptoSoftPath pour que ça marche (implémentation nécessaire)
+        // We keep CryptoSoftPath to make it work (required implementation)
         public string CryptoSoftPath { get; set; } = string.Empty;
 
-        // --- Méthodes conformes au diagramme ---
+        // --- Methods matching the diagram ---
 
         public string GetBusinessSoftwareName()
         {
@@ -42,14 +42,14 @@ namespace EasySave.Models
             return logFormat;
         }
 
-        // On garde la propriété LogFormat pour le binding JSON, mais on ajoute le Setter du diagramme
+        // We keep the LogFormat property for JSON binding, but add the Setter from the diagram
         public void SetLogFormat(string format)
         {
             logFormat = string.IsNullOrWhiteSpace(format) ? "json" : format.ToLower();
         }
 
-        // Propriété Property C# pour faciliter la sérialisation JSON, 
-        // mais on utilise les méthodes ci-dessous pour respecter le diagramme.
+        // C# Property to make JSON serialization easier, 
+        // but we use the methods below to respect the diagram.
         public string LogFormat
         {
             get => GetLogFormat();
@@ -57,7 +57,7 @@ namespace EasySave.Models
         }
 
         /// <summary>
-        /// Conforme au diagramme : Retourne la liste des extensions.
+        /// Matches the diagram: Returns the list of extensions.
         /// </summary>
         public List<string> GetEncryptExtensions()
         {
@@ -65,14 +65,14 @@ namespace EasySave.Models
         }
 
         /// <summary>
-        /// Conforme au diagramme : Définit la liste des extensions.
+        /// Matches the diagram: Sets the list of extensions.
         /// </summary>
         public void SetEncryptExtensions(List<string> ext)
         {
             encryptExtensions = ext;
         }
 
-        // Propriété wrapper pour la sérialisation JSON (JsonSerializer a besoin de propriétés publiques)
+        // Wrapper property for JSON serialization (JsonSerializer needs public properties)
         public List<string> ExtensionsToEncrypt
         {
             get => encryptExtensions;
@@ -124,7 +124,7 @@ namespace EasySave.Models
                     SetLogFormat(data?.LogFormat ?? "json");
                     SetBusinessSoftwareName(data?.BusinessSoftwareName ?? string.Empty);
 
-                    // Chargement des extensions et du chemin CryptoSoft
+                    // Loading extensions and CryptoSoft path
                     CryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
                     SetEncryptExtensions(data?.ExtensionsToEncrypt ?? new List<string>());
 
@@ -171,7 +171,7 @@ namespace EasySave.Models
             return Path.Combine(appData, "EasySave", configFilePath);
         }
 
-        // Classe interne pour la structure JSON
+        // Internal class for the JSON structure
         private sealed class ConfigurationData
         {
             public List<BackupJob> Jobs { get; set; } = new();

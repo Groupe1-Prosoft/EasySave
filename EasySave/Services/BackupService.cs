@@ -105,11 +105,17 @@ namespace EasySave.Services
                 long transferTime = CopyFile(file, targetFile);
                 long encryptionTime = 0;
 
+                // --- MODIFICATION ICI : On gère le chronomètre manuellement ---
                 if (_cryptoSoftService.IsEligible(targetFile, _configuration.ExtensionsToEncrypt))
                 {
-                    long time = _cryptoSoftService.EncryptFile(targetFile);
-                    if (time >= 0) encryptionTime = time;
+                    var cryptoWatch = Stopwatch.StartNew(); // On lance le chrono juste avant de crypter
+
+                    _cryptoSoftService.EncryptFile(targetFile); // On lance CryptoSoft
+
+                    cryptoWatch.Stop(); // On arrête le chrono
+                    encryptionTime = cryptoWatch.ElapsedMilliseconds; // On récupère le temps en millisecondes
                 }
+                // -----------------------------------------------------------------
 
                 var data = new LogData
                 {
@@ -119,7 +125,7 @@ namespace EasySave.Services
                     Target = targetFile,
                     Size = new FileInfo(file).Length,
                     TransferTime = transferTime,
-                    EncryptionTime = encryptionTime
+                    EncryptionTime = encryptionTime // On l'ajoute bien ici !
                 };
 
                 _logger.WriteLog(data);
@@ -130,9 +136,12 @@ namespace EasySave.Services
                 UpdateProgress(processed, files.Count);
             }
 
-            _currentState.State = "NON ACTIF";
-            _currentState.Timestamp = DateTime.Now;
-            _currentState.UpdateStateJSON();
+            if (_currentState != null)
+            {
+                _currentState.State = "NON ACTIF";
+                _currentState.Timestamp = DateTime.Now;
+                _currentState.UpdateStateJSON();
+            }
 
             return true;
         }

@@ -9,64 +9,31 @@ namespace EasySave.AvaloniaApp.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly Configuration _configuration;
-    private readonly IBackupService _backupService;
-
-    // Child view models
     private readonly HomeViewModel _homeViewModel;
     private readonly SettingsViewModel _settingsViewModel;
 
-    /// <summary>
-    /// Gets the localization helper instance.
-    /// </summary>
     public LocalizationHelper Loc => LocalizationHelper.Instance;
 
-    /// <summary>
-    /// Gets or sets whether the navigation pane is open.
-    /// </summary>
     [ObservableProperty]
     private bool _isPaneOpen;
 
-    /// <summary>
-    /// Gets or sets the current page view model.
-    /// </summary>
     [ObservableProperty]
     private ViewModelBase _currentPage;
 
-    /// <summary>
-    /// Initializes the main window view model with all services.
-    /// </summary>
-    public MainWindowViewModel()
+    // Le constructeur demande juste les deux pages, il ne fabrique plus rien lui-même
+    public MainWindowViewModel(HomeViewModel homeViewModel, SettingsViewModel settingsViewModel)
     {
-        // Load configuration
-        _configuration = new Configuration();
-        _configuration.LoadConfig();
-
-        // Inject all dependencies into BackupService (true DI)
-        ILogger logger = new Logger(_configuration.LogFormat);
-        var businessMonitor = new BusinessSoftwareMonitor();
-        var cryptoService = new CryptoSoftService();
-
-        _backupService = new BackupService(_configuration, logger, cryptoService, businessMonitor);
-
-        _homeViewModel = new HomeViewModel(_configuration, _backupService);
-        _settingsViewModel = new SettingsViewModel(_configuration);
-
+        _homeViewModel = homeViewModel;
+        _settingsViewModel = settingsViewModel;
         CurrentPage = _homeViewModel;
     }
 
-    /// <summary>
-    /// Toggles the navigation pane open/closed.
-    /// </summary>
     [RelayCommand]
     private void TogglePane()
     {
         IsPaneOpen = !IsPaneOpen;
     }
 
-    /// <summary>
-    /// Navigates to a specific page by name.
-    /// </summary>
     [RelayCommand]
     private void Navigate(string page)
     {
@@ -78,9 +45,6 @@ public partial class MainWindowViewModel : ViewModelBase
         };
     }
 
-    /// <summary>
-    /// Switches the application language.
-    /// </summary>
     [RelayCommand]
     private void SwitchLanguage(string language)
     {

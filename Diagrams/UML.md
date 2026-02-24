@@ -430,46 +430,358 @@ classDiagram
     ConsoleView --> LanguageManager : uses
     ConsoleView ..> BackupState : displays
 
-        %% Styles par groupe
-    classDef guiStyle fill:#dae8fc,stroke:#6c8ebf
-    classDef consoleStyle fill:#d5e8d4,stroke:#82b366
-    classDef coreStyle fill:#fff2cc,stroke:#d6b656
-    classDef logStyle fill:#f8cecc,stroke:#b85450
-
-    class Program:::guiStyle
-    class MainWindow:::guiStyle
-    class ViewModelBase:::guiStyle
-    class MainWindowViewModel:::guiStyle
-    class HomeViewModel:::guiStyle
-    class SettingsViewModel:::guiStyle
-    class LogsViewModel:::guiStyle
-    class LocalizationHelper:::guiStyle
-    class LanguageManager:::guiStyle
-
-    class ServiceContainer:::consoleStyle
-    class MenuController:::consoleStyle
-    class ConsoleView:::consoleStyle
-
-    class IBackupService:::coreStyle
-    class BackupService:::coreStyle
-    class BackupJobController:::coreStyle
-    class JobControlState:::coreStyle
-    class CryptoSoftService:::coreStyle
-    class BusinessSoftwareMonitor:::coreStyle
-    class BackupState:::coreStyle
-    class BackupJob:::coreStyle
-    class BackupType:::coreStyle
-    class LogMode:::coreStyle
-    class Configuration:::coreStyle
-
-    class ILogger:::logStyle
-    class Logger:::logStyle
-    class LogDispatcher:::logStyle
-    class RemoteLogService:::logStyle
-    class LogData:::logStyle
+    
 
 ```
+```mermaid
+classDiagram
 
+    namespace GUI_Avalonia {
+        class Program:::guiStyle {
+            +Main(args: string[])$
+        }
+        class MainWindow:::guiStyle {
+            <<Avalonia View>>
+            -dataContext: MainWindowViewModel
+        }
+        class ViewModelBase:::guiStyle {
+            <<abstract>>
+        }
+        class MainWindowViewModel:::guiStyle {
+            -configuration: Configuration
+            -backupService: IBackupService
+            -homeViewModel: HomeViewModel
+            -settingsViewModel: SettingsViewModel
+            -currentPage: ViewModelBase
+            -isPaneOpen: bool
+            +TogglePaneCommand()
+            +NavigateCommand(page: string)
+            +SwitchLanguageCommand(language: string)
+        }
+        class HomeViewModel:::guiStyle {
+            -configuration: Configuration
+            -backupService: IBackupService
+            +Jobs: ObservableCollection~SelectableJob~ «property»
+            -newName: string
+            -newSourceDir: string
+            -newTargetDir: string
+            -selectedTypeIndex: int
+            -statusMessage: string
+            -isExecuting: bool
+            +CreateJobCommand()
+            +ExecuteSelectedCommand()
+            +DeleteSelectedCommand()
+            +ExecuteJobCommand(job: BackupJob)
+            +DeleteJobCommand(job: BackupJob)
+            +SelectAllCommand()
+            +PauseJobCommand(id: int)
+            +ResumeJobCommand(id: int)
+            +StopJobCommand(id: int)
+            +PauseAllCommand()
+            +ResumeAllCommand()
+            +StopAllCommand()
+        }
+        class SettingsViewModel:::guiStyle {
+            -configuration: Configuration
+            -cryptoSoftPath: string
+            -extensionsText: string
+            -businessSoftwareName: string
+            -selectedLogFormatIndex: int
+            -statusMessage: string
+            -priorityExtensionsText: string
+            -maxLargeFileSizeKB: long
+            -selectedLogModeIndex: int
+            -dockerServerUrl: string
+            +SaveCommand()
+        }
+        class LogsViewModel:::guiStyle {
+            +Logs: ObservableCollection~LogEntry~ «property»
+            -statusMessage: string
+            +LoadLogsCommand()
+        }
+        class LocalizationHelper:::guiStyle {
+            <<singleton>>
+            +Instance: LocalizationHelper «static»
+            +CurrentLanguage: string «property»
+            +SwitchLanguage(lang: string)
+        }
+        class LanguageManager:::guiStyle {
+            -currentLanguage: string
+            -translations: Dictionary~string, string~
+            +SetLanguage(lang: string)
+            +GetText(key: string) string
+            +LoadTranslations() bool
+        }
+    }
+
+    namespace ConsoleApp {
+        class ServiceContainer:::consoleStyle {
+            -_languageManager: LanguageManager
+            -_configuration: Configuration
+            -_view: ConsoleView
+            -_logger: ILogger
+            -_backupService: BackupService
+            -_businessSoftwareMonitor: BusinessSoftwareMonitor
+            -_cryptoSoftService: CryptoSoftService
+            +GetConfiguration() Configuration
+            +GetLanguageManager() LanguageManager
+            +GetConsoleView() ConsoleView
+            +GetBackupService() BackupService
+            +GetLogger() ILogger
+            +RefreshBackupService()
+        }
+        class MenuController:::consoleStyle {
+            -_services: ServiceContainer
+            -_backupService: BackupService
+            -_configuration: Configuration
+            -_view: ConsoleView
+            -_languageManager: LanguageManager
+            +Run()
+            -SetupLanguageAndFormat()
+            -HandleMenuOption(choice: string) bool
+            -HandleListJobs() bool
+            -HandleCreateJob() bool
+            -HandleExecuteJob() bool
+            -HandleExecuteAllJobs() bool
+            -HandleDeleteJob() bool
+            -HandleChangeLogFormat() bool
+            -HandleInvalidOption() bool
+        }
+        class ConsoleView:::consoleStyle {
+            -_languageManager: LanguageManager
+            +ShowMenu()
+            +SelectLogFormat() string
+            +GetInput() string
+            +ShowProgress(state: BackupState)
+            +DisplayError(message: string)
+        }
+    }
+
+    namespace Core {
+        class IBackupService:::coreStyle {
+            <<interface>>
+            +ExecuteJob(job: BackupJob) bool
+            +ExecuteParallel(ids: List~int~) bool
+            +PauseJob(id: int)
+            +ResumeJob(id: int)
+            +StopJob(id: int)
+            +PauseAll()
+            +ResumeAll()
+            +StopAll()
+        }
+        class BackupService:::coreStyle {
+            -_logger: ILogger
+            -_configuration: Configuration
+            -_cryptoSoftService: CryptoSoftService
+            -_businessMonitor: BusinessSoftwareMonitor
+            -_controllers: Dictionary~int, BackupJobController~
+            -_largeFileSemaphore: SemaphoreSlim
+            +ExecuteJob(job: BackupJob) bool
+            +ExecuteParallel(ids: List~int~) bool
+            +PauseJob(id: int)
+            +ResumeJob(id: int)
+            +StopJob(id: int)
+            +PauseAll()
+            +ResumeAll()
+            +StopAll()
+            -CopyFile(source: string, dest: string) long
+            -GetFileList(directory: string) List~string~
+            -CalculateTotalSize(files: List~string~) long
+            -CheckPriorityRule(file: string) bool
+        }
+        class BackupJobController:::coreStyle {
+            +JobId: int «property»
+            +State: JobControlState «property»
+            -_pauseEvent: ManualResetEventSlim
+            -_cancellationSource: CancellationTokenSource
+            +Pause()
+            +Resume()
+            +Stop()
+            +WaitIfPaused()
+        }
+        class JobControlState:::coreStyle {
+            <<enumeration>>
+            Running
+            Paused
+            Stopped
+            Completed
+        }
+        class CryptoSoftService:::coreStyle {
+            -cryptoSoftPath: string
+            -_mutex: Mutex
+            +EncryptFile(filePath: string) long
+            +IsEligible(filePath: string, extensions: List~string~) bool
+            +AcquireLock() bool
+            +ReleaseLock()
+        }
+        class BusinessSoftwareMonitor:::coreStyle {
+            -processName: string
+            -_isMonitoring: bool
+            +IsRunning() bool
+            +SetProcessName(name: string)
+            +StartMonitoring()
+            +StopMonitoring()
+        }
+        class BackupState:::coreStyle {
+            +JobName: string «property»
+            +Timestamp: DateTime «property»
+            +State: string «property»
+            +TotalFiles: int «property»
+            +TotalSize: long «property»
+            +Progression: int «property»
+            +FilesRemaining: int «property»
+            +SizeRemaining: long «property»
+            +CurrentSourceFile: string «property»
+            +CurrentTargetFile: string «property»
+            +UpdateStateJSON() bool
+            +UpdateStateXML() bool
+            +ToJSON() string
+            +ToXML() string
+        }
+        class BackupJob:::coreStyle {
+            +Id: int «property»
+            +Name: string «property»
+            +SourceDir: string «property»
+            +TargetDir: string «property»
+            +Type: BackupType «property»
+            +Validate() bool
+        }
+        class BackupType:::coreStyle {
+            <<enumeration>>
+            Full
+            Differential
+        }
+        class LogMode:::coreStyle {
+            <<enumeration>>
+            Local
+            Remote
+            Both
+        }
+        class Configuration:::coreStyle {
+            -jobs: List~BackupJob~
+            -configFilePath: string «const»
+            -logFormat: string
+            -encryptExtensions: List~string~
+            -businessSoftwareName: string
+            -_lock: object
+            +CryptoSoftPath: string «property»
+            +PriorityExtensions: List~string~ «property»
+            +MaxLargeFileSizeKB: long «property»
+            +LogMode: LogMode «property»
+            +DockerServerUrl: string «property»
+            +GetJobs() List~BackupJob~
+            +AddJob(job: BackupJob) bool
+            +RemoveJob(id: int) bool
+            +LoadConfig() bool
+            +SaveConfig() bool
+            +GetEncryptExtensions() List~string~
+            +SetEncryptExtensions(ext: List~string~)
+            +GetBusinessSoftwareName() string
+            +SetBusinessSoftwareName(name: string)
+            +GetLogFormat() string
+            +SetLogFormat(format: string)
+        }
+    }
+
+    namespace EasyLog_DLL {
+        class ILogger:::logStyle {
+            <<interface>>
+            +WriteLog(data: LogData) bool
+        }
+        class Logger:::logStyle {
+            -logFilePath: string
+            -logFormat: string
+            -_lock: object
+            +WriteLog(data: LogData) bool
+            +CreateDailyLogFile() string
+        }
+        class LogDispatcher:::logStyle {
+            -_localLogger: Logger
+            -_remoteLogger: RemoteLogService
+            -_mode: LogMode
+            +WriteLog(data: LogData) bool
+        }
+        class RemoteLogService:::logStyle {
+            -_serverUrl: string
+            -_machineId: string
+            +SendLog(data: LogData) bool
+            +Connect(url: string) bool
+            +Disconnect()
+        }
+        class LogData:::logStyle {
+            +Timestamp: DateTime «property»
+            +Name: string «property»
+            +Source: string «property»
+            +Target: string «property»
+            +Size: long «property»
+            +TransferTime: long «property»
+            +EncryptionTime: long «property»
+            +ToJSON() string
+            +ToXML() string
+        }
+    }
+
+    %% ─── Styles par namespace ───────────────────────────────────────────
+    classDef guiStyle     fill:#ffd6d6,stroke:#cc0000,color:#000
+    classDef consoleStyle fill:#fff3cd,stroke:#d4930a,color:#000
+    classDef coreStyle    fill:#d4edda,stroke:#28a745,color:#000
+    classDef logStyle     fill:#cce5ff,stroke:#0056b3,color:#000
+
+    %% ─── Relations GUI ──────────────────────────────────────────────────
+    Program *-- MainWindow : creates
+    Program *-- MainWindowViewModel : creates
+    MainWindow --> MainWindowViewModel : binds to
+    ViewModelBase <|-- MainWindowViewModel
+    ViewModelBase <|-- HomeViewModel
+    ViewModelBase <|-- SettingsViewModel
+    ViewModelBase <|-- LogsViewModel
+    MainWindowViewModel *-- HomeViewModel : creates
+    MainWindowViewModel *-- SettingsViewModel : creates
+    MainWindowViewModel --> Configuration : uses
+    MainWindowViewModel ..> LocalizationHelper : uses
+    HomeViewModel --> IBackupService : uses
+    HomeViewModel --> Configuration : uses
+    SettingsViewModel --> Configuration : uses
+    LocalizationHelper --> LanguageManager : delegates to
+
+    %% ─── Relations Core ─────────────────────────────────────────────────
+    IBackupService <|.. BackupService : implements
+    BackupService --> Configuration : reads config
+    BackupService *-- "*" BackupJobController : manages
+    BackupJobController --> JobControlState : has state
+    BackupJobController ..> BackupState : creates & updates
+    BackupService ..> LogData : creates
+    BackupService --> ILogger : calls
+    BackupService --> CryptoSoftService : uses
+    BackupService --> BusinessSoftwareMonitor : checks
+    Configuration *-- "*" BackupJob : contains
+    BackupJob --> BackupType : has type
+    Configuration --> LogMode : uses
+
+    %% ─── Relations EasyLog ──────────────────────────────────────────────
+    ILogger <|.. Logger : implements
+    ILogger <|.. LogDispatcher : implements
+    LogDispatcher --> Logger : local write
+    LogDispatcher --> RemoteLogService : remote write
+    Logger ..> LogData : writes
+    RemoteLogService ..> LogData : sends
+
+    %% ─── Relations ConsoleApp ───────────────────────────────────────────
+    ServiceContainer *-- Configuration : creates
+    ServiceContainer *-- ConsoleView : creates
+    ServiceContainer *-- BackupService : creates
+    ServiceContainer *-- BusinessSoftwareMonitor : creates
+    ServiceContainer *-- CryptoSoftService : creates
+    ServiceContainer --> LanguageManager : uses
+    ServiceContainer --> ILogger : uses
+    MenuController --> ServiceContainer : uses
+    MenuController --> BackupService : calls
+    MenuController --> Configuration : reads
+    MenuController --> ConsoleView : uses
+    MenuController --> LanguageManager : uses
+    ConsoleView --> LanguageManager : uses
+    ConsoleView ..> BackupState : displays
+```
  
 ## 3. Sequence Diagram Creation backup
 

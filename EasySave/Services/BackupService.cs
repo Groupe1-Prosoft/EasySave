@@ -105,6 +105,25 @@ namespace EasySave.Services
                     }
                 }
 
+                // Auto-pause if business software starts during backup
+                if (_businessMonitor.IsRunning())
+                {
+                    if (_currentState != null)
+                    {
+                        _currentState.State = "PAUSE";
+                        _currentState.UpdateStateJSON();
+                    }
+                    while (_businessMonitor.IsRunning())
+                        System.Threading.Thread.Sleep(1000);
+
+                    if (_currentState != null)
+                    {
+                        _currentState.State = "ACTIF";
+                        _currentState.UpdateStateJSON();
+                    }
+                }
+
+
                 long transferTime;
                 long fileSizeBytes = new FileInfo(file).Length;
                 long limitBytes = _configuration.MaxLargeFileSizeKB * 1024;

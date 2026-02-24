@@ -375,7 +375,7 @@ classDiagram
         }
     }
 
-    %% GUI
+    
     Program *-- MainWindow : creates
     Program *-- MainWindowViewModel : creates
     MainWindow --> MainWindowViewModel : binds to
@@ -392,7 +392,7 @@ classDiagram
     SettingsViewModel --> Configuration : uses
     LocalizationHelper --> LanguageManager : delegates to
 
-    %% Core
+    
     IBackupService <|.. BackupService : implements
     BackupService --> Configuration : reads config
     BackupService *-- "*" BackupJobController : manages
@@ -406,7 +406,7 @@ classDiagram
     BackupJob --> BackupType : has type
     Configuration --> LogMode : uses
 
-    %% EasyLog
+    
     ILogger <|.. Logger : implements
     ILogger <|.. LogDispatcher : implements
     LogDispatcher --> Logger : local write
@@ -414,7 +414,7 @@ classDiagram
     Logger ..> LogData : writes
     RemoteLogService ..> LogData : sends
 
-    %% Console App
+    
     ServiceContainer *-- Configuration : creates
     ServiceContainer *-- ConsoleView : creates
     ServiceContainer *-- BackupService : creates
@@ -429,6 +429,45 @@ classDiagram
     MenuController --> LanguageManager : uses
     ConsoleView --> LanguageManager : uses
     ConsoleView ..> BackupState : displays
+
+        %% Styles par groupe
+    classDef guiStyle fill:#dae8fc,stroke:#6c8ebf
+    classDef consoleStyle fill:#d5e8d4,stroke:#82b366
+    classDef coreStyle fill:#fff2cc,stroke:#d6b656
+    classDef logStyle fill:#f8cecc,stroke:#b85450
+
+    class Program:::guiStyle
+    class MainWindow:::guiStyle
+    class ViewModelBase:::guiStyle
+    class MainWindowViewModel:::guiStyle
+    class HomeViewModel:::guiStyle
+    class SettingsViewModel:::guiStyle
+    class LogsViewModel:::guiStyle
+    class LocalizationHelper:::guiStyle
+    class LanguageManager:::guiStyle
+
+    class ServiceContainer:::consoleStyle
+    class MenuController:::consoleStyle
+    class ConsoleView:::consoleStyle
+
+    class IBackupService:::coreStyle
+    class BackupService:::coreStyle
+    class BackupJobController:::coreStyle
+    class JobControlState:::coreStyle
+    class CryptoSoftService:::coreStyle
+    class BusinessSoftwareMonitor:::coreStyle
+    class BackupState:::coreStyle
+    class BackupJob:::coreStyle
+    class BackupType:::coreStyle
+    class LogMode:::coreStyle
+    class Configuration:::coreStyle
+
+    class ILogger:::logStyle
+    class Logger:::logStyle
+    class LogDispatcher:::logStyle
+    class RemoteLogService:::logStyle
+    class LogData:::logStyle
+
 ```
 
  

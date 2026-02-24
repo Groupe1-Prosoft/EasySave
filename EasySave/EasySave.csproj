@@ -12,4 +12,10 @@
     <ProjectReference Include="..\EasyLog\EasyLog.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Tools\CryptoSoft.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

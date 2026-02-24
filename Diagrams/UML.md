@@ -79,7 +79,7 @@ classDiagram
     }
 
     class MainWindowViewModel {
-        -backupService: BackupService
+        -backupService: IBackupService
         -configuration: Configuration
         -languageManager: LanguageManager
         +Jobs: ObservableCollection~BackupJob~ «property»
@@ -117,6 +117,7 @@ classDiagram
         +SetBusinessSoftwareName(name: string)
         +GetLogFormat() string
         +SetLogFormat(format: string)
+        + _lock : object
     }
 
     class BackupService {
@@ -124,6 +125,227 @@ classDiagram
         -configuration: Configuration
         -cryptoSoftService: CryptoSoftService
         -businessMonitor: BusinessSoftwareMonitor
+        +ExecuteJob(job: BackupJob) bool
+        +ExecuteSequential(ids: List~int~) bool
+        -CopyFile(source: string, dest: string) long
+        -GetFileList(directory: string) List~string~
+        -CalculateTotalSize(files: List~string~) long
+        -UpdateProgress(current: int, total: int)
+    }
+
+    class IBackupService {
+        <<interface>>
+        + ExecuteJob(job: BackupJob) : bool
+        + ExecuteSequential(ids: List<int>) : bool
+    }
+
+    class CryptoSoftService {
+        -cryptoSoftPath: string
+        +EncryptFile(filePath: string) long
+        +IsEligible(filePath: string, extensions: List~string~) bool
+    }
+
+    class BusinessSoftwareMonitor {
+        -processName: string
+        +IsRunning() bool
+        +SetProcessName(name: string)
+    }
+
+    class BackupState {
+        +JobName: string «property»
+        +Timestamp: DateTime «property»
+        +State: string «property»
+        +TotalFiles: int «property»
+        +TotalSize: long «property»
+        +Progression: int «property»
+        +FilesRemaining: int «property»
+        +SizeRemaining: long «property»
+        +CurrentSourceFile: string «property»
+        +CurrentTargetFile: string «property»
+        +UpdateStateJSON() bool
+        +UpdateStateXML() bool
+        +ToJSON() string
+        +ToXML() string
+    }
+
+    class BackupJob {
+        +Id: int «property»
+        +Name: string «property»
+        +SourceDir: string «property»
+        +TargetDir: string «property»
+        +Type: BackupType «property»
+        +Validate() bool
+    }
+
+    class BackupType {
+        <<enumeration>>
+        Full
+        Differential
+    }
+
+    class ILogger {
+        <<interface>>
+        <<EasyLog_DLL>>
+        +WriteLog(data: LogData) bool
+    }
+
+    class Logger {
+        <<EasyLog_DLL>>
+        -logFilePath: string
+        -logFormat: string
+        +WriteLog(data: LogData) bool
+        + _lock : object 
+        +CreateDailyLogFile() string
+    }
+
+    class LogData {
+        <<EasyLog_DLL>>
+        +Timestamp: DateTime «property»
+        +Name: string «property»
+        +Source: string «property»
+        +Target: string «property»
+        +Size: long «property»
+        +TransferTime: long «property»
+        +EncryptionTime: long «property»
+        +ToJSON() string
+        +ToXML() string
+    }
+
+    Program *-- MainWindow : creates
+    Program *-- MainWindowViewModel : creates
+    Program ..> LanguageManager
+
+    MainWindow --> MainWindowViewModel : binds to
+
+    MainWindowViewModel --> IBackupService : uses
+    MainWindowViewModel --> Configuration : uses
+    MainWindowViewModel --> LanguageManager : uses
+
+    IBackupService <|.. BackupService : implements
+    BackupService --> Configuration : reads config
+    BackupService ..> BackupState : creates & updates
+    BackupService ..> LogData : creates
+    BackupService --> ILogger : calls
+    BackupService --> CryptoSoftService : uses
+    BackupService --> BusinessSoftwareMonitor : checks
+
+    Configuration *-- "*" BackupJob : contains
+    BackupJob --> BackupType : has type
+
+    ILogger <|.. Logger : implements
+    Logger ..> LogData : writes
+```
+
+
+```mermaid
+classDiagram
+
+    class Program {
+        +Main(args: string[])$
+    }
+
+    class MainWindow {
+        <<Avalonia View>>
+        -dataContext: MainWindowViewModel
+    }
+
+    class ViewModelBase {
+        <<abstract>>
+    }
+
+    class MainWindowViewModel {
+        -configuration: Configuration
+        -backupService: IBackupService
+        -homeViewModel: HomeViewModel
+        -settingsViewModel: SettingsViewModel
+        -currentPage: ViewModelBase
+        -isPaneOpen: bool
+        +TogglePaneCommand()
+        +NavigateCommand(page: string)
+        +SwitchLanguageCommand(language: string)
+    }
+
+    class HomeViewModel {
+        -configuration: Configuration
+        -backupService: IBackupService
+        +Jobs: ObservableCollection~SelectableJob~ «property»
+        -newName: string
+        -newSourceDir: string
+        -newTargetDir: string
+        -selectedTypeIndex: int
+        -statusMessage: string
+        -isExecuting: bool
+        +CreateJobCommand()
+        +ExecuteSelectedCommand()
+        +DeleteSelectedCommand()
+        +ExecuteJobCommand(job: BackupJob)
+        +DeleteJobCommand(job: BackupJob)
+        +SelectAllCommand()
+    }
+
+    class SettingsViewModel {
+        -configuration: Configuration
+        -cryptoSoftPath: string
+        -extensionsText: string
+        -businessSoftwareName: string
+        -selectedLogFormatIndex: int
+        -statusMessage: string
+        +SaveCommand()
+    }
+
+    class LogsViewModel {
+        +Logs: ObservableCollection~LogEntry~ «property»
+        -statusMessage: string
+        +LoadLogsCommand()
+    }
+
+    class LocalizationHelper {
+        <<singleton>>
+        +Instance: LocalizationHelper «static»
+        +CurrentLanguage: string «property»
+        +SwitchLanguage(lang: string)
+    }
+
+    class LanguageManager {
+        -currentLanguage: string
+        -translations: Dictionary~string, string~
+        +SetLanguage(lang: string)
+        +GetText(key: string) string
+        +LoadTranslations() bool
+    }
+
+    class Configuration {
+        -jobs: List~BackupJob~
+        -configFilePath: string «const»
+        -logFormat: string
+        -encryptExtensions: List~string~
+        -businessSoftwareName: string
+        -_lock: object
+        +GetJobs() List~BackupJob~
+        +AddJob(job: BackupJob) bool
+        +RemoveJob(id: int) bool
+        +LoadConfig() bool
+        +SaveConfig() bool
+        +GetEncryptExtensions() List~string~
+        +SetEncryptExtensions(ext: List~string~)
+        +GetBusinessSoftwareName() string
+        +SetBusinessSoftwareName(name: string)
+        +GetLogFormat() string
+        +SetLogFormat(format: string)
+    }
+
+    class IBackupService {
+        <<interface>>
+        +ExecuteJob(job: BackupJob) bool
+        +ExecuteSequential(ids: List~int~) bool
+    }
+
+    class BackupService {
+        -logger: ILogger
+        -configuration: Configuration
+        -cryptoSoftService: CryptoSoftService
+        -businessMonitor: BusinessSoftwareMonitor
+        -currentState: BackupState
         +ExecuteJob(job: BackupJob) bool
         +ExecuteSequential(ids: List~int~) bool
         -CopyFile(source: string, dest: string) long
@@ -186,6 +408,7 @@ classDiagram
         <<EasyLog_DLL>>
         -logFilePath: string
         -logFormat: string
+        -_lock: object
         +WriteLog(data: LogData) bool
         +CreateDailyLogFile() string
     }
@@ -203,16 +426,37 @@ classDiagram
         +ToXML() string
     }
 
+    %% Program
     Program *-- MainWindow : creates
     Program *-- MainWindowViewModel : creates
-    Program ..> LanguageManager
 
+    %% Views
     MainWindow --> MainWindowViewModel : binds to
 
-    MainWindowViewModel --> BackupService : uses
-    MainWindowViewModel --> Configuration : uses
-    MainWindowViewModel --> LanguageManager : uses
+    %% Hiérarchie ViewModels
+    ViewModelBase <|-- MainWindowViewModel
+    ViewModelBase <|-- HomeViewModel
+    ViewModelBase <|-- SettingsViewModel
+    ViewModelBase <|-- LogsViewModel
 
+    %% MainWindowViewModel
+    MainWindowViewModel *-- HomeViewModel : creates
+    MainWindowViewModel *-- SettingsViewModel : creates
+    MainWindowViewModel --> Configuration : uses
+    MainWindowViewModel ..> LocalizationHelper : uses
+
+    %% HomeViewModel
+    HomeViewModel --> IBackupService : uses
+    HomeViewModel --> Configuration : uses
+
+    %% SettingsViewModel
+    SettingsViewModel --> Configuration : uses
+
+    %% Localisation
+    LocalizationHelper --> LanguageManager : delegates to
+
+    %% BackupService
+    IBackupService <|.. BackupService : implements
     BackupService --> Configuration : reads config
     BackupService ..> BackupState : creates & updates
     BackupService ..> LogData : creates
@@ -220,12 +464,15 @@ classDiagram
     BackupService --> CryptoSoftService : uses
     BackupService --> BusinessSoftwareMonitor : checks
 
+    %% Configuration & modèles
     Configuration *-- "*" BackupJob : contains
     BackupJob --> BackupType : has type
 
+    %% Logger
     ILogger <|.. Logger : implements
     Logger ..> LogData : writes
 ```
+
 
  
 ## 3. Sequence Diagram Creation backup
@@ -264,7 +511,7 @@ sequenceDiagram
     actor User
     participant MainWindow
     participant HomeViewModel
-    participant BackupService
+    participant IBackupService
     participant BusinessSoftwareMonitor
     participant CryptoSoftService
     participant BackupState
@@ -272,27 +519,27 @@ sequenceDiagram
 
     User->>MainWindow: Click "Execute"
     MainWindow->>HomeViewModel: ExecuteJobCommand()
-    HomeViewModel->>BackupService: ExecuteJob()
+    HomeViewModel->>IBackupService: ExecuteJob()
 
-    BackupService->>BusinessSoftwareMonitor: IsRunning()
+    IBackupService->>BusinessSoftwareMonitor: IsRunning()
 
     alt Business software detected
-        BusinessSoftwareMonitor-->>BackupService: true
-        BackupService->>ILogger: WriteLog()
-        BackupService-->>HomeViewModel: Backup blocked
+        BusinessSoftwareMonitor-->>IBackupService: true
+        IBackupService->>ILogger: WriteLog()
+        IBackupService-->>HomeViewModel: Backup blocked
         HomeViewModel-->>MainWindow: Display error
     else No business software
-        BusinessSoftwareMonitor-->>BackupService: false
-        BackupService->>BackupState: new BackupState()
+        BusinessSoftwareMonitor-->>IBackupService: false
+        IBackupService->>BackupState: new BackupState()
 
         loop For each file in source
-            BackupService->>BackupService: CopyFile()
-            BackupService->>CryptoSoftService: EncryptFile()
-            BackupService->>ILogger: WriteLog()
-            BackupService->>BackupState: UpdateStateJSON()
+            IBackupService->>BackupService: CopyFile()
+            IBackupService->>CryptoSoftService: EncryptFile()
+            IBackupService->>ILogger: WriteLog()
+            IBackupService->>BackupState: UpdateStateJSON()
         end
 
-        BackupService-->>HomeViewModel: Backup completed
+        IBackupService-->>HomeViewModel: Backup completed
         HomeViewModel-->>MainWindow: Update status
     end
 ```
@@ -353,29 +600,29 @@ sequenceDiagram
     actor User
     participant MainWindow
     participant HomeViewModel
-    participant BackupService
+    participant IBackupService
     participant CryptoSoftService
     participant ILogger
 
     User->>MainWindow: Click "Execute differential"
     MainWindow->>HomeViewModel: ExecuteJobCommand()
-    HomeViewModel->>BackupService: ExecuteJob()
+    HomeViewModel->>IBackupService: ExecuteJob()
 
-   BackupService->>BackupService: Check job.Type == Differential
+   IBackupService->>BackupService: Check job.Type == Differential
 
     loop For each file in source
-        BackupService->>BackupService: IsFileModified()
+        IBackupService->>BackupService: IsFileModified()
 
         alt File modified
-            BackupService->>BackupService: CopyFile()
-            BackupService->>CryptoSoftService: EncryptFile()
-            BackupService->>ILogger: WriteLog()
+            IBackupService->>BackupService: CopyFile()
+            IBackupService->>CryptoSoftService: EncryptFile()
+            IBackupService->>ILogger: WriteLog()
         else File unchanged
-            BackupService->>BackupService: Skip file
+            IBackupService->>BackupService: Skip file
         end
     end
 
-    BackupService-->>HomeViewModel: Backup completed
+    IBackupService-->>HomeViewModel: Backup completed
     HomeViewModel-->>MainWindow: Update status
 ```
 

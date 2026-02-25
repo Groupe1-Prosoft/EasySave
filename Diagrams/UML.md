@@ -106,6 +106,7 @@ classDiagram
             -settingsViewModel: SettingsViewModel
             -currentPage: ViewModelBase
             -isPaneOpen: bool
+            +Loc: LanguageProxy «property»
             +TogglePaneCommand()
             +NavigateCommand(page: string)
             +SwitchLanguageCommand(language: string)
@@ -115,6 +116,7 @@ classDiagram
             -configuration: Configuration
             -backupService: BackupService
             +Jobs: ObservableCollection~SelectableJob~ «property»
+            +Loc: LanguageProxy «property»
             -newName: string
             -newSourceDir: string
             -newTargetDir: string
@@ -135,6 +137,7 @@ classDiagram
 
         class SettingsViewModel:::guiStyle {
             -configuration: Configuration
+            +Loc: LanguageProxy «property»
             -cryptoSoftPath: string
             -extensionsText: string
             -businessSoftwareName: string
@@ -148,6 +151,7 @@ classDiagram
         }
         class LogsViewModel:::guiStyle {
             +Logs: ObservableCollection~LogEntry~ «property»
+            +Loc: LanguageProxy «property»
             -statusMessage: string
             +LoadLogsCommand()
         }
@@ -156,6 +160,9 @@ classDiagram
             +Instance: LocalizationHelper «static»
             +CurrentLanguage: string «property»
             +SwitchLanguage(lang: string)
+        }
+        class LanguageProxy:::guiStyle {
+            +this[key: string]: string «indexer»
         }
         class LanguageManager:::guiStyle {
             -currentLanguage: string
@@ -379,6 +386,11 @@ classDiagram
     HomeViewModel --> Configuration : uses
     SettingsViewModel --> Configuration : uses
     LocalizationHelper --> LanguageManager : delegates to
+    LanguageProxy --> LanguageManager : reads via
+    MainWindowViewModel --> LocalizationHelper : subscribes to
+    HomeViewModel --> LocalizationHelper : subscribes to
+    SettingsViewModel --> LocalizationHelper : subscribes to
+    LogsViewModel --> LocalizationHelper : subscribes to
 
     
     BackupService --> Configuration : reads config
@@ -515,21 +527,28 @@ sequenceDiagram
     actor User
     participant MainWindow
     participant MainWindowViewModel
+    participant HomeViewModel
+    participant SettingsViewModel
+    participant LogsViewModel
     participant LocalizationHelper
     participant LanguageManager
 
-    User->>MainWindow: Select language
+    User->>MainWindow: Select language (FR/EN)
     MainWindow->>MainWindowViewModel: SwitchLanguageCommand(lang)
 
     MainWindowViewModel->>LocalizationHelper: SwitchLanguage(lang)
     LocalizationHelper->>LanguageManager: SetLanguage(lang)
     LanguageManager->>LanguageManager: LoadTranslations()
     LanguageManager-->>LocalizationHelper: done
-    LocalizationHelper-->>MainWindowViewModel: Language changed
 
+    LocalizationHelper-->>MainWindowViewModel: PropertyChanged
+    LocalizationHelper-->>HomeViewModel: PropertyChanged
+    LocalizationHelper-->>SettingsViewModel: PropertyChanged
+    LocalizationHelper-->>LogsViewModel: PropertyChanged
 
-    MainWindowViewModel-->>MainWindow: Update UI bindings
-    MainWindow-->>User: Interface refreshed
+    Note over MainWindowViewModel,LogsViewModel: Each VM assigns Loc = new LanguageProxy()<br/>Avalonia detects new reference → re-evaluates all Loc[Key] bindings
+
+    MainWindow-->>User: Interface refreshed (all pages, instantly)
 ```
 
 ## 7. Sequence Diagram differential backup

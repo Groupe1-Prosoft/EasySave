@@ -10,7 +10,7 @@ using EasySave.Models;
 
 namespace EasySave.Services
 {
-    public class BackupService : IBackupService
+    public class BackupService
     {
         private readonly ILogger _logger;
         private readonly Configuration _configuration;
@@ -254,21 +254,7 @@ namespace EasySave.Services
             }
             return success && !_stopRequested;
         }
-        // TODO: implement true parallel execution with BackupJobController (one Task per job)
-        public bool ExecuteParallel(List<int> ids)
-        {
-            return ExecuteSequential(ids);
-        }
-
-        // TODO: implement per-job control via _controllers[id] (BackupJobController)
-        public void PauseJob(int id) => Pause();
-        public void ResumeJob(int id) => Resume();
-        public void StopJob(int id) => Stop();
-
-        public void PauseAll() => Pause();
-        public void ResumeAll() => Resume();
-        public void StopAll() => Stop();
-
+      
         private long CopyFile(string source, string target)
         {
             var stopwatch = Stopwatch.StartNew();

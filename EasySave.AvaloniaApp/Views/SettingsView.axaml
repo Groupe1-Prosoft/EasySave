@@ -76,7 +76,7 @@
                     <!-- Business Software -->
                     <StackPanel Spacing="4">
                         <TextBlock Text="{Binding Loc[SettingsBusinessSoft]}" FontSize="13" Foreground="#64748B"/>
-                        <TextBox Text="{Binding BusinessSoftwareName}" Watermark="calculator"/>
+						<TextBox Text="{Binding BusinessSoftwareName}" Watermark="outlook.exe"/>
                     </StackPanel>
 
                     <!-- Log Format -->

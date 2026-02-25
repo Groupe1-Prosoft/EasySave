@@ -27,6 +27,9 @@ namespace EasySave.Models
 
         public long MaxLargeFileSizeKB { get; set; } = 0;
 
+        public List<string> PriorityExtensions { get; set; } = new();
+
+
 
         // --- Methods matching the diagram ---
 
@@ -133,6 +136,9 @@ namespace EasySave.Models
 
                     MaxLargeFileSizeKB = data?.MaxLargeFileSizeKB ?? 0;
 
+                    PriorityExtensions = data?.PriorityExtensions ?? new List<string>();
+
+
 
                     return true;
                 }
@@ -159,7 +165,9 @@ namespace EasySave.Models
                         BusinessSoftwareName = businessSoftwareName,
                         CryptoSoftPath = CryptoSoftPath,
                         ExtensionsToEncrypt = encryptExtensions,
-                        MaxLargeFileSizeKB = MaxLargeFileSizeKB
+                        MaxLargeFileSizeKB = MaxLargeFileSizeKB,
+                        PriorityExtensions = PriorityExtensions
+
                     };
 
                     var options = new JsonSerializerOptions { WriteIndented = true };
@@ -188,6 +196,9 @@ namespace EasySave.Models
             public List<string> ExtensionsToEncrypt { get; set; } = new();
 
             public long MaxLargeFileSizeKB { get; set; } = 0;
+
+            public List<string> PriorityExtensions { get; set; } = new();
+
 
         }
     }

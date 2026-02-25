@@ -98,6 +98,13 @@
                                        CornerRadius="6"/>
                     </StackPanel>
 
+                    <!-- Priority Extensions -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Extensions prioritaires (ex: .txt, .pdf)" FontSize="13" Foreground="#64748B"/>
+                        <TextBox Text="{Binding PriorityExtensionsText}" Watermark=".txt, .pdf, .docx"/>
+                    </StackPanel>
+
+
 
                     <!-- Save -->
                     <Button Classes="primary" Content="{Binding Loc[BtnSave]}"

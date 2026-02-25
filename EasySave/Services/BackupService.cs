@@ -25,6 +25,9 @@ namespace EasySave.Services
         // Semaphores to manage concurrency
         private readonly SemaphoreSlim _largeFileSemaphore = new SemaphoreSlim(1, 1);
 
+        private int _priorityPendingCount = 0;
+
+
         // Dependencies are injected to decouple object creation
         public BackupService(
             Configuration configuration,
@@ -98,6 +101,11 @@ namespace EasySave.Services
                 if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
 
                 var files = GetFileList(job.SourceDir!);
+
+                int priorityCount = files.Count(f => CheckPriorityRule(f));
+                Interlocked.Add(ref _priorityPendingCount, priorityCount);
+                files = files.OrderByDescending(f => CheckPriorityRule(f)).ToList();
+
                 long totalSize = CalculateTotalSize(files);
 
                 _currentState = new BackupState
@@ -119,6 +127,17 @@ namespace EasySave.Services
                 {
                     // Check for pause or stop requests before processing file
                     if (!WaitIfPausedOrStopped()) return false;
+
+                    bool isPriority = CheckPriorityRule(file);
+                    if (!isPriority && _priorityPendingCount > 0)
+                    {
+                        while (_priorityPendingCount > 0)
+                        {
+                            if (_stopRequested) return false;
+                            Thread.Sleep(100);
+                        }
+                    }
+
 
                     string relative = Path.GetRelativePath(job.SourceDir!, file);
                     string targetFile = Path.Combine(job.TargetDir!, relative);
@@ -157,6 +176,10 @@ namespace EasySave.Services
                     {
                         transferTime = CopyFile(file, targetFile);
                     }
+
+                    if (isPriority)
+                        Interlocked.Decrement(ref _priorityPendingCount);
+
 
                     long encryptionTime = 0;
 
@@ -303,5 +326,15 @@ namespace EasySave.Services
             _currentState.Timestamp = DateTime.Now;
             _currentState.UpdateStateJSON();
         }
+
+        private bool CheckPriorityRule(string filePath)
+        {
+            var ext = Path.GetExtension(filePath)?.ToLower().TrimStart('.');
+            var priorities = _configuration.PriorityExtensions;
+            if (priorities == null || priorities.Count == 0)
+                return false;
+            return priorities.Any(p => p.ToLower().TrimStart('.') == ext);
+        }
+
     }
 }

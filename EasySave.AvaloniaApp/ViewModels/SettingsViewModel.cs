@@ -32,6 +32,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private long _maxLargeFileSizeKB;
 
+    [ObservableProperty]
+    private string _priorityExtensionsText = string.Empty;
+
+
 
     public SettingsViewModel(Configuration configuration)
     {
@@ -47,6 +51,8 @@ public partial class SettingsViewModel : ViewModelBase
         BusinessSoftwareName = _configuration.GetBusinessSoftwareName();
         SelectedLogFormatIndex = (_configuration.LogFormat ?? "json").ToLower() == "xml" ? 1 : 0;
         MaxLargeFileSizeKB = _configuration.MaxLargeFileSizeKB;
+        PriorityExtensionsText = string.Join(", ", _configuration.PriorityExtensions ?? new List<string>());
+
 
     }
 
@@ -63,6 +69,11 @@ public partial class SettingsViewModel : ViewModelBase
         _configuration.SetBusinessSoftwareName(BusinessSoftwareName);
         _configuration.LogFormat = SelectedLogFormatIndex == 1 ? "xml" : "json";
         _configuration.MaxLargeFileSizeKB = MaxLargeFileSizeKB;
+        var priorityExtensions = PriorityExtensionsText
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .ToList();
+        _configuration.PriorityExtensions = priorityExtensions;
+
 
 
 

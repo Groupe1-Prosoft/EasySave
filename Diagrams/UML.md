@@ -228,6 +228,7 @@ classDiagram
             -_stopRequested: bool
             -_isRunning: bool
             -_largeFileSemaphore: SemaphoreSlim
+            -_priorityPendingCount: int
             +IsPaused: bool
             +IsRunning: bool
             +IsStopping: bool
@@ -239,6 +240,8 @@ classDiagram
             -CopyFile(source: string, dest: string) long
             -GetFileList(directory: string) List~string~
             -CalculateTotalSize(files: List~string~) long
+            -CheckPriorityRule(filePath: string) bool
+
         }
 
         class CryptoSoftService:::coreStyle {

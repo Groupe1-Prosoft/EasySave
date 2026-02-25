@@ -102,8 +102,6 @@ classDiagram
             <<abstract>>
         }
         class MainWindowViewModel:::guiStyle {
-            -configuration: Configuration
-            -backupService: IBackupService
             -homeViewModel: HomeViewModel
             -settingsViewModel: SettingsViewModel
             -currentPage: ViewModelBase
@@ -112,9 +110,10 @@ classDiagram
             +NavigateCommand(page: string)
             +SwitchLanguageCommand(language: string)
         }
+
         class HomeViewModel:::guiStyle {
             -configuration: Configuration
-            -backupService: IBackupService
+            -backupService: BackupService
             +Jobs: ObservableCollection~SelectableJob~ «property»
             -newName: string
             -newSourceDir: string
@@ -122,19 +121,18 @@ classDiagram
             -selectedTypeIndex: int
             -statusMessage: string
             -isExecuting: bool
+            -isPaused: bool
+            +PauseResumeText: string
             +CreateJobCommand()
             +ExecuteSelectedCommand()
             +DeleteSelectedCommand()
             +ExecuteJobCommand(job: BackupJob)
             +DeleteJobCommand(job: BackupJob)
             +SelectAllCommand()
-            +PauseJobCommand(id: int)
-            +ResumeJobCommand(id: int)
-            +StopJobCommand(id: int)
-            +PauseAllCommand()
-            +ResumeAllCommand()
-            +StopAllCommand()
+            +PauseResumeCommand()
+            +StopCommand()
         }
+
         class SettingsViewModel:::guiStyle {
             -configuration: Configuration
             -cryptoSoftPath: string
@@ -200,7 +198,10 @@ classDiagram
             -HandleDeleteJob() bool
             -HandleChangeLogFormat() bool
             -HandleInvalidOption() bool
+            -RunBackupWithControls(execute: Func~bool~) bool
+            -HandleExecutionResult(result: bool)
         }
+
         class ConsoleView:::consoleStyle {
             -_languageManager: LanguageManager
             +ShowMenu()
@@ -208,58 +209,38 @@ classDiagram
             +GetInput() string
             +ShowProgress(state: BackupState)
             +DisplayError(message: string)
+            +ShowExecutionControls()
+            +ShowStatus(message: string)
         }
+
     }
 
     namespace Core {
-        class IBackupService:::coreStyle {
-            <<interface>>
-            +ExecuteJob(job: BackupJob) bool
-            +ExecuteParallel(ids: List~int~) bool
-            +PauseJob(id: int)
-            +ResumeJob(id: int)
-            +StopJob(id: int)
-            +PauseAll()
-            +ResumeAll()
-            +StopAll()
-        }
+
         class BackupService:::coreStyle {
             -_logger: ILogger
             -_configuration: Configuration
             -_cryptoSoftService: CryptoSoftService
             -_businessMonitor: BusinessSoftwareMonitor
-            -_controllers: Dictionary~int, BackupJobController~
-            -_largeFileSemaphore: SemaphoreSlim
-            +ExecuteJob(job: BackupJob) bool
-            +ExecuteParallel(ids: List~int~) bool
-            +PauseJob(id: int)
-            +ResumeJob(id: int)
-            +StopJob(id: int)
-            +PauseAll()
-            +ResumeAll()
-            +StopAll()
-            -CopyFile(source: string, dest: string) long
-            -GetFileList(directory: string) List~string~
-            -CalculateTotalSize(files: List~string~) long
-            -CheckPriorityRule(file: string) bool
-        }
-        class BackupJobController:::coreStyle {
-            +JobId: int «property»
-            +State: JobControlState «property»
             -_pauseEvent: ManualResetEventSlim
-            -_cancellationSource: CancellationTokenSource
+            -_stopCts: CancellationTokenSource
+            -_currentState: BackupState
+            -_stopRequested: bool
+            -_isRunning: bool
+            -_largeFileSemaphore: SemaphoreSlim
+            +IsPaused: bool
+            +IsRunning: bool
+            +IsStopping: bool
+            +ExecuteJob(job: BackupJob) bool
+            +ExecuteSequential(ids: List~int~) bool
             +Pause()
             +Resume()
             +Stop()
-            +WaitIfPaused()
+            -CopyFile(source: string, dest: string) long
+            -GetFileList(directory: string) List~string~
+            -CalculateTotalSize(files: List~string~) long
         }
-        class JobControlState:::coreStyle {
-            <<enumeration>>
-            Running
-            Paused
-            Stopped
-            Completed
-        }
+
         class CryptoSoftService:::coreStyle {
             -cryptoSoftPath: string
             -_mutex: Mutex
@@ -375,13 +356,13 @@ classDiagram
         }
     }
 
-    %% ─── Styles par namespace ───────────────────────────────────────────
+    
     classDef guiStyle     fill:#ffd6d6,stroke:#cc0000,color:#000
     classDef consoleStyle fill:#fff3cd,stroke:#d4930a,color:#000
     classDef coreStyle    fill:#d4edda,stroke:#28a745,color:#000
     classDef logStyle     fill:#cce5ff,stroke:#0056b3,color:#000
 
-    %% ─── Relations GUI ──────────────────────────────────────────────────
+   
     Program *-- MainWindow : creates
     Program *-- MainWindowViewModel : creates
     MainWindow --> MainWindowViewModel : binds to
@@ -391,19 +372,13 @@ classDiagram
     ViewModelBase <|-- LogsViewModel
     MainWindowViewModel *-- HomeViewModel : creates
     MainWindowViewModel *-- SettingsViewModel : creates
-    MainWindowViewModel --> Configuration : uses
-    MainWindowViewModel ..> LocalizationHelper : uses
-    HomeViewModel --> IBackupService : uses
+    HomeViewModel --> BackupService : uses
     HomeViewModel --> Configuration : uses
     SettingsViewModel --> Configuration : uses
     LocalizationHelper --> LanguageManager : delegates to
 
-    %% ─── Relations Core ─────────────────────────────────────────────────
-    IBackupService <|.. BackupService : implements
+    
     BackupService --> Configuration : reads config
-    BackupService *-- "*" BackupJobController : manages
-    BackupJobController --> JobControlState : has state
-    BackupJobController ..> BackupState : creates & updates
     BackupService ..> LogData : creates
     BackupService --> ILogger : calls
     BackupService --> CryptoSoftService : uses
@@ -412,7 +387,7 @@ classDiagram
     BackupJob --> BackupType : has type
     Configuration --> LogMode : uses
 
-    %% ─── Relations EasyLog ──────────────────────────────────────────────
+    
     ILogger <|.. Logger : implements
     ILogger <|.. LogDispatcher : implements
     LogDispatcher --> Logger : local write
@@ -420,7 +395,7 @@ classDiagram
     Logger ..> LogData : writes
     RemoteLogService ..> LogData : sends
 
-    %% ─── Relations ConsoleApp ───────────────────────────────────────────
+    
     ServiceContainer *-- Configuration : creates
     ServiceContainer *-- ConsoleView : creates
     ServiceContainer *-- BackupService : creates
@@ -473,7 +448,7 @@ sequenceDiagram
     actor User
     participant MainWindow
     participant HomeViewModel
-    participant IBackupService
+    participant BackupService
     participant BusinessSoftwareMonitor
     participant CryptoSoftService
     participant BackupState
@@ -481,27 +456,27 @@ sequenceDiagram
 
     User->>MainWindow: Click "Execute"
     MainWindow->>HomeViewModel: ExecuteJobCommand()
-    HomeViewModel->>IBackupService: ExecuteJob()
+    HomeViewModel->>BackupService: ExecuteJob()
 
-    IBackupService->>BusinessSoftwareMonitor: IsRunning()
+    BackupService->>BusinessSoftwareMonitor: IsRunning()
 
     alt Business software detected
-        BusinessSoftwareMonitor-->>IBackupService: true
-        IBackupService->>ILogger: WriteLog()
-        IBackupService-->>HomeViewModel: Backup blocked
+        BusinessSoftwareMonitor-->>BackupService: true
+        BackupService->>ILogger: WriteLog()
+        BackupService-->>HomeViewModel: Backup blocked
         HomeViewModel-->>MainWindow: Display error
     else No business software
-        BusinessSoftwareMonitor-->>IBackupService: false
-        IBackupService->>BackupState: new BackupState()
+        BusinessSoftwareMonitor-->>BackupService: false
+        BackupService->>BackupState: new BackupState()
 
         loop For each file in source
-            IBackupService->>BackupService: CopyFile()
-            IBackupService->>CryptoSoftService: EncryptFile()
-            IBackupService->>ILogger: WriteLog()
-            IBackupService->>BackupState: UpdateStateJSON()
+            BackupService->>BackupService: CopyFile()
+            BackupService->>CryptoSoftService: EncryptFile()
+            BackupService->>ILogger: WriteLog()
+            BackupService->>BackupState: UpdateStateJSON()
         end
 
-        IBackupService-->>HomeViewModel: Backup completed
+        BackupService-->>HomeViewModel: Backup completed
         HomeViewModel-->>MainWindow: Update status
     end
 ```
@@ -562,29 +537,29 @@ sequenceDiagram
     actor User
     participant MainWindow
     participant HomeViewModel
-    participant IBackupService
+    participant BackupService
     participant CryptoSoftService
     participant ILogger
 
     User->>MainWindow: Click "Execute differential"
     MainWindow->>HomeViewModel: ExecuteJobCommand()
-    HomeViewModel->>IBackupService: ExecuteJob()
+    HomeViewModel->>BackupService: ExecuteJob()
 
-   IBackupService->>BackupService: Check job.Type == Differential
+   BackupService->>BackupService: Check job.Type == Differential
 
     loop For each file in source
-        IBackupService->>BackupService: IsFileModified()
+        BackupService->>BackupService: IsFileModified()
 
         alt File modified
-            IBackupService->>BackupService: CopyFile()
-            IBackupService->>CryptoSoftService: EncryptFile()
-            IBackupService->>ILogger: WriteLog()
+            BackupService->>BackupService: CopyFile()
+            BackupService->>CryptoSoftService: EncryptFile()
+            BackupService->>ILogger: WriteLog()
         else File unchanged
-            IBackupService->>BackupService: Skip file
+            BackupService->>BackupService: Skip file
         end
     end
 
-    IBackupService-->>HomeViewModel: Backup completed
+    BackupService-->>HomeViewModel: Backup completed
     HomeViewModel-->>MainWindow: Update status
 ```
 

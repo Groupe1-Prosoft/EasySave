@@ -26,6 +26,9 @@ namespace EasySave.Services
         private bool _stopRequested;
         private bool _isRunning;
 
+        private readonly SemaphoreSlim _largeFileSemaphore = new SemaphoreSlim(1, 1);
+
+
         /// <summary>
         /// Initializes the service with ALL dependencies injected (not created inside).
         /// This is TRUE Dependency Injection: all objects come from outside.
@@ -159,7 +162,22 @@ namespace EasySave.Services
                         }
                     }
 
-                    long transferTime = CopyFile(file, targetFile);
+                    long transferTime;
+                    long fileSizeBytes = new FileInfo(file).Length;
+                    long limitBytes = _configuration.MaxLargeFileSizeKB * 1024;
+                    bool isLarge = limitBytes > 0 && fileSizeBytes > limitBytes;
+
+                    if (isLarge)
+                    {
+                        _largeFileSemaphore.Wait();
+                        try { transferTime = CopyFile(file, targetFile); }
+                        finally { _largeFileSemaphore.Release(); }
+                    }
+                    else
+                    {
+                        transferTime = CopyFile(file, targetFile);
+                    }
+
                     long encryptionTime = 0;
 
                     if (_cryptoSoftService.IsEligible(targetFile, _configuration.ExtensionsToEncrypt))

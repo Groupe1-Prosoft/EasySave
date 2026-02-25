@@ -11,7 +11,7 @@
 		Width="1100" Height="700"
 		Background="#FAFAFA"
 		ExtendClientAreaToDecorationsHint="True"
-		ExtendClientAreaChromeHints="PreferSystemChrome"
+		ExtendClientAreaChromeHints="NoChrome"
 		ExtendClientAreaTitleBarHeightHint="40">
 
 	<Window.Styles>
@@ -37,6 +37,28 @@
 		<Style Selector="Button.nav-btn.active /template/ ContentPresenter">
 			<Setter Property="Background" Value="#EDE9FE"/>
 			<Setter Property="Foreground" Value="#6366F1"/>
+		</Style>
+
+		<!-- Window control buttons -->
+		<Style Selector="Button.wnd-btn">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="#374151"/>
+			<Setter Property="Width" Value="40"/>
+			<Setter Property="Height" Value="40"/>
+			<Setter Property="CornerRadius" Value="0"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="HorizontalContentAlignment" Value="Center"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+		</Style>
+		<Style Selector="Button.wnd-btn:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#E5E7EB"/>
+			<Setter Property="Foreground" Value="#1E1E1E"/>
+		</Style>
+		<Style Selector="Button.wnd-btn.close:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#EF4444"/>
+			<Setter Property="Foreground" Value="White"/>
 		</Style>
 
 		<!-- Lang button style -->
@@ -67,7 +89,8 @@
 	<DockPanel>
 		<!-- Title Bar -->
 		<Border DockPanel.Dock="Top" Background="#FAFAFA" Height="40"
-				IsHitTestVisible="True" Name="TitleBar">
+				IsHitTestVisible="True" Name="TitleBar"
+				PointerPressed="TitleBar_PointerPressed">
 			<Grid ColumnDefinitions="Auto,*,Auto">
 				<!-- Logo + Title -->
 				<StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center">
@@ -78,15 +101,29 @@
 							   VerticalAlignment="Center"/>
 				</StackPanel>
 
-				<!-- Language Switcher -->
-				<StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,140,0"
-							VerticalAlignment="Center" Spacing="4">
+				<!-- Right side: language switcher + window controls -->
+				<StackPanel Grid.Column="2" Orientation="Horizontal"
+							VerticalAlignment="Center" Spacing="4" Margin="0,0,0,0">
 					<Button Classes="lang-btn"
 							Command="{Binding SwitchLanguageCommand}"
 							CommandParameter="fr" Content="FR"/>
 					<Button Classes="lang-btn"
 							Command="{Binding SwitchLanguageCommand}"
 							CommandParameter="en" Content="EN"/>
+
+					<!-- Separator -->
+					<Rectangle Width="1" Height="20" Fill="#E5E7EB" Margin="4,0"/>
+
+					<!-- Window controls -->
+					<Button Classes="wnd-btn" Content="&#x2212;"
+							Name="BtnMinimize" Click="BtnMinimize_Click"
+							ToolTip.Tip="Réduire"/>
+					<Button Classes="wnd-btn" Content="&#x25A1;"
+							Name="BtnMaximize" Click="BtnMaximize_Click"
+							ToolTip.Tip="Agrandir"/>
+					<Button Classes="wnd-btn close" Content="&#x2715;"
+							Name="BtnClose" Click="BtnClose_Click"
+							ToolTip.Tip="Fermer"/>
 				</StackPanel>
 			</Grid>
 		</Border>

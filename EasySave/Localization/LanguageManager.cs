@@ -62,8 +62,15 @@ namespace EasySave.Localization
             ["Processing"] = "Processing: {0} ({1} files)...",
             ["FileCopied"] = " -> {0} copied.",
             ["CopyError"] = "Copy error: {0}",
+            ["ExecutionControls"] = "Controls: [P] Pause/Resume, [S] Stop",
+            ["BackupPaused"] = "Backup paused.",
+            ["BackupResumed"] = "Backup resumed.",
+            ["BackupStopped"] = "Backup stopped.",
+            ["BackupFailed"] = "Backup failed.",
+            ["BtnPause"] = "Pause",
+            ["BtnResume"] = "Resume",
+            ["BtnStop"] = "Stop",
 
-            // Avalonia GUI keys
             ["NavHome"] = "Home",
             ["NavLogs"] = "Logs",
             ["NavSettings"] = "Settings",
@@ -93,7 +100,6 @@ namespace EasySave.Localization
             ["SettingsSaved"] = "Settings saved!",
             ["LogsTitle"] = "Daily Logs",
             ["LogsNoLogs"] = "No logs found.",
-
         };
 
         /// <summary>
@@ -140,8 +146,15 @@ namespace EasySave.Localization
             ["Processing"] = "Traitement de : {0} ({1} fichiers)...",
             ["FileCopied"] = " -> {0} copié.",
             ["CopyError"] = "Erreur copie : {0}",
+            ["ExecutionControls"] = "Commandes : [P] Pause/Reprise, [S] Stop",
+            ["BackupPaused"] = "Sauvegarde en pause.",
+            ["BackupResumed"] = "Sauvegarde reprise.",
+            ["BackupStopped"] = "Sauvegarde stoppée.",
+            ["BackupFailed"] = "Échec de la sauvegarde.",
+            ["BtnPause"] = "Pause",
+            ["BtnResume"] = "Reprendre",
+            ["BtnStop"] = "Stop",
 
-            // Avalonia GUI keys
             ["NavHome"] = "Accueil",
             ["NavLogs"] = "Logs",
             ["NavSettings"] = "Paramètres",
@@ -171,11 +184,15 @@ namespace EasySave.Localization
             ["SettingsSaved"] = "Paramètres enregistrés !",
             ["LogsTitle"] = "Logs journaliers",
             ["LogsNoLogs"] = "Aucun log trouvé.",
-
         };
 
 
         private static readonly Lazy<LanguageManager> _instance = new(() => new LanguageManager());
+
+        /// <summary>
+        /// Lock object used to synchronise all read/write access to mutable state.
+        /// </summary>
+        private readonly object _lock = new();
 
         /// <summary>
         /// Gets the single shared instance of LanguageManager.
@@ -183,9 +200,12 @@ namespace EasySave.Localization
         public static LanguageManager Instance => _instance.Value;
 
         /// <summary>
-        /// Gets the current language code.
+        /// Gets the current language code (thread-safe).
         /// </summary>
-        public string CurrentLanguage => _currentLanguage;
+        public string CurrentLanguage
+        {
+            get { lock (_lock) { return _currentLanguage; } }
+        }
 
         /// <summary>
         /// Private constructor — use Instance instead.
@@ -201,8 +221,11 @@ namespace EasySave.Localization
         /// </summary>
         public void SetLanguage(string lang)
         {
-            _currentLanguage = lang.ToLower();
-            LoadTranslations();
+            lock (_lock)
+            {
+                _currentLanguage = lang.ToLower();
+                LoadTranslationsUnsafe();
+            }
         }
 
         /// <summary>
@@ -210,11 +233,12 @@ namespace EasySave.Localization
         /// </summary>
         public string GetText(string key)
         {
-            if (_translations.TryGetValue(key, out string? value))
+            lock (_lock)
             {
-                return value;
+                if (_translations.TryGetValue(key, out string? value))
+                    return value;
+                return key;
             }
-            return key;
         }
 
         /// <summary>
@@ -228,15 +252,28 @@ namespace EasySave.Localization
 
         /// <summary>
         /// Loads the translation dictionary for the current language.
+        /// Must be called from within a lock(_lock) block.
         /// </summary>
         public bool LoadTranslations()
+        {
+            lock (_lock)
+            {
+                LoadTranslationsUnsafe();
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Inner helper — swaps the dictionary reference.
+        /// Caller is responsible for holding _lock before calling this.
+        /// </summary>
+        private void LoadTranslationsUnsafe()
         {
             _translations = _currentLanguage switch
             {
                 "fr" => FrenchTranslations,
                 _ => EnglishTranslations
             };
-            return true;
         }
     }
 }

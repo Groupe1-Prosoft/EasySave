@@ -9,61 +9,85 @@ namespace EasySave.Services
     {
         private string cryptoSoftPath;
 
+        // Prevents multiple files from being encrypted at the same time
+        private readonly System.Threading.SemaphoreSlim _cryptoSemaphore = new System.Threading.SemaphoreSlim(1, 1);
+
         public CryptoSoftService()
         {
             cryptoSoftPath = string.Empty;
         }
 
+        // Sets the exact path to the CryptoSoft tool
         public void SetPath(string path)
         {
             cryptoSoftPath = path;
         }
 
-        /// <summary>
-        /// Checks if a file is eligible for encryption based on its extension.
-        /// </summary>
+        // Checks if a file should be encrypted based on its extension
         public bool IsEligible(string filePath, List<string> extensions)
         {
+            // If the path is empty or there are no extensions, do not encrypt
             if (string.IsNullOrEmpty(filePath) || extensions == null || extensions.Count == 0)
                 return false;
 
-            string fileExtension = Path.GetExtension(filePath).TrimStart('.');
-            // Check if extension exists in the list (case insensitive)
-            return extensions.Exists(e => e.Equals(fileExtension, StringComparison.OrdinalIgnoreCase));
+            // Get the extension of the file
+            string fileExtension = Path.GetExtension(filePath);
+
+            // Check if the extension is in the list
+            return extensions.Exists(e =>
+                e.Equals(fileExtension, StringComparison.OrdinalIgnoreCase) ||
+                ("." + e).Equals(fileExtension, StringComparison.OrdinalIgnoreCase));
         }
 
-        /// <summary>
-        /// Encrypts the file at the given path using CryptoSoft.
-        /// Returns the encryption time in milliseconds, or -1 if failed.
-        /// </summary>
+        // Waits for its turn before allowing access to CryptoSoft
+        public bool AcquireLock()
+        {
+            _cryptoSemaphore.Wait();
+            return true;
+        }
+
+        // Releases the lock so the next process can use CryptoSoft
+        public void ReleaseLock()
+        {
+            _cryptoSemaphore.Release();
+        }
+
+        // Encrypts the file using CryptoSoft and returns the time it took
         public long EncryptFile(string filePath)
         {
+            // Stop if the tool or the file is missing
             if (!File.Exists(cryptoSoftPath)) return -1;
             if (!File.Exists(filePath)) return -1;
 
             try
             {
+                // Start a timer to measure the encryption duration
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
+                // Prepare the process to run CryptoSoft silently in the background
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
                     FileName = cryptoSoftPath,
-                    Arguments = $"\"{filePath}\"", // Encrypt in place (single argument implies target file)
+                    // Send the file path twice to use the same file as source and destination
+                    Arguments = $"\"{filePath}\" \"{filePath}\"",
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
 
+                // Run the process and wait until the encryption is done
                 using (Process process = Process.Start(startInfo))
                 {
-                    process.WaitForExit();
+                    process?.WaitForExit();
                 }
 
+                // Stop the timer and return the result in milliseconds
                 stopwatch.Stop();
                 return stopwatch.ElapsedMilliseconds;
             }
             catch
             {
+                // Return -1 if an error happens
                 return -1;
             }
         }

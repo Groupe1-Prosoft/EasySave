@@ -129,6 +129,14 @@
                                     Command="{Binding ExecuteSelectedCommand}"
 
                                     IsEnabled="{Binding !IsExecuting}"/>
+
+                            <Button Classes="secondary" Content="{Binding PauseResumeText}"
+                                    Command="{Binding PauseResumeCommand}"
+                                    IsEnabled="{Binding IsExecuting}"/>
+
+                            <Button Classes="danger" Content="{Binding Loc[BtnStop]}"
+                                    Command="{Binding StopCommand}"
+                                    IsEnabled="{Binding IsExecuting}"/>
                         </StackPanel>
                     </Grid>
                 </StackPanel>

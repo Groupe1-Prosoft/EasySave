@@ -92,5 +92,24 @@ namespace EasySave.Views
                 Console.ResetColor();
             }
         }
+
+        /// <summary>
+        /// Displays the execution controls hint.
+        /// </summary>
+        public void ShowExecutionControls()
+        {
+            Console.WriteLine(_languageManager.GetText("ExecutionControls"));
+        }
+
+        /// <summary>
+        /// Displays an informational status message.
+        /// </summary>
+        public void ShowStatus(string message)
+        {
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                Console.WriteLine(message);
+            }
+        }
     }
 }

@@ -3,19 +3,17 @@ using CommunityToolkit.Mvvm.Input;
 using EasySave.AvaloniaApp.Helpers;
 using EasySave.Models;
 using EasySave.Services;
+using EasyLog;
 
 namespace EasySave.AvaloniaApp.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly Configuration _configuration;
-    private readonly BackupService _backupService;
-
-    // Child view models
     private readonly HomeViewModel _homeViewModel;
     private readonly SettingsViewModel _settingsViewModel;
 
-    public LocalizationHelper Loc => LocalizationHelper.Instance;
+    [ObservableProperty]
+    private LanguageProxy _loc = new();
 
     [ObservableProperty]
     private bool _isPaneOpen;
@@ -23,16 +21,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private ViewModelBase _currentPage;
 
-    public MainWindowViewModel()
+    // Le constructeur demande juste les deux pages, il ne fabrique plus rien lui-même
+    public MainWindowViewModel(HomeViewModel homeViewModel, SettingsViewModel settingsViewModel)
     {
-        _configuration = new Configuration();
-        _configuration.LoadConfig();
-        _backupService = new BackupService(_configuration);
-
-        _homeViewModel = new HomeViewModel(_configuration, _backupService);
-        _settingsViewModel = new SettingsViewModel(_configuration);
-
-        _currentPage = _homeViewModel;
+        _homeViewModel = homeViewModel;
+        _settingsViewModel = settingsViewModel;
+        CurrentPage = _homeViewModel;
+        LocalizationHelper.Instance.PropertyChanged += (_, _) => Loc = new LanguageProxy();
     }
 
     [RelayCommand]
@@ -48,16 +43,13 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             "Home" => _homeViewModel,
             "Settings" => _settingsViewModel,
-            _ => _homeViewModel
+            _ => CurrentPage
         };
-
-
     }
 
-
     [RelayCommand]
-    private void SwitchLanguage(string lang)
+    private void SwitchLanguage(string language)
     {
-        Loc.SwitchLanguage(lang);
+        LocalizationHelper.Instance.SwitchLanguage(language);
     }
 }

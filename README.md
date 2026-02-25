@@ -27,8 +27,7 @@ EasySave provides a console-based backup application (V1) with planned evolution
 ````
 EasySave/
 ├── Diagrams/
-│   ├── UML.md                       # UML diagrams V1
-│   └── UMLv2.md                     # UML diagrams V2
+│   └── UML.md                       # Current Architecture Diagrams (V2)
 ├── EasySave/                        # Console Application (V1)
 │   ├── Program.cs                   # Entry point (Controller - MVC)
 │   ├── Localization/
@@ -46,6 +45,7 @@ EasySave/
 │   ├── ILogger.cs                   # Logger interface (ISP)
 │   ├── Logger.cs                    # Logger implementation
 │   └── LogData.cs                   # Log data model
+│   └── Integration-guide.md         
 ├── EasySave.AvaloniaApp/            # GUI Application (V2 - MVVM)
 │   ├── ViewModels/                  # MVVM ViewModels
 │   └── Views/                       # MVVM Views
@@ -53,6 +53,13 @@ EasySave/
 ````
 
 ---
+
+## EasyLog DLL
+
+EasyLog is a standalone class library that handles all log writing for EasySave. It is versioned and distributed independently of the main application.
+
+> **Full integration guide:** [EasyLog/Integration-guide.md](EasyLog/Integration-guide.md)
+
 
 ## Solution Architecture
 The solution is divided into several projects to adhere to the Separation of Concerns principle:
@@ -122,13 +129,13 @@ var lang = LanguageManager.Instance;
 lang.SetLanguage("fr");
 string text = lang.GetText("Goodbye"); // "Au revoir !"
 ```
-
 **Advantages:**
 
--Guarantees a single instance across the application
--Thread-safe with Lazy<T> initialization
--Global access without passing references everywhere
--Prevents inconsistent language state
+Guarantees a single instance across the application
+Thread-safe instantiation via Lazy<T>
+Thread-safe access via lock — SetLanguage(), GetText(), and CurrentLanguage are synchronized so no thread can observe a partially-updated state (e.g., language code changed but dictionary not yet swapped)
+Global access without passing references everywhere
+Prevents inconsistent language state
 
 ## Facade Pattern (BackupService)
 The `BackupService` acts as a Facade, hiding the complexity of file operations, state management, and logging behind a simple interface.
@@ -194,31 +201,35 @@ feat/*: Working branch for each task
 
     ___
 
-## Installation & Usage
-1.  Clone the repository: `git clone https://github.com/yyyanis/EasySave.git`
-2.  Open the `.sln` file in Visual Studio.
-3.  Ensure the startup project is set to **EasySave**.
-4.  Build and Start (F5).
-5. If you're running on vs code or anything else type this command to run it on the terminal : dotnet run --project EasySave
-6. To run the job in the command line way paste this commad on command line : 
+## Installation & Quick Start
 
-dotnet build
+### Prerequisites
+* [.NET 8.0 SDK](https://dotnet.microsoft.com/download)
 
-Execute first job :
-dotnet run -- 1
+### Run the Application
+1. Clone the repository: 
+   ```bash
+   git clone [https://github.com/Groupe1-Prosoft/EasySave.git](https://github.com/Groupe1-Prosoft/EasySave.git)
 
-Execute jobs 1 to 3 :
-dotnet run -- 1-3   
+2. Navigate to the project directory:
 
- Execute jobs 1 and 3 :
- dotnet run -- "1;3"
-  
+cd EasySave
+
+3. Run the console application:
+   
+   dotnet run --project EasySave
+   
+User Guide
+For detailed instructions on how to navigate the menus, configure backups, and use the Command Line Interface (CLI) parameters, please refer to our dedicated documentation:
+
+Read the EasySave User Guide
+
 ## Documentation and Deliverables
 
 ### UML Diagrams
-Click the link below to view the design documentation:
+Our documentation uses a "living document" approach. The UML diagrams file always reflects the architecture of the latest active deliverable (currently **V2.0**).
 
-* [**View Project Documentation (UML v2.0 - Draft)**](Diagrams/UML.md)
+* [**View Current Project Architecture (UML)**](Diagrams/UML.md)
 
 
 ### Release (Download)

@@ -12,7 +12,8 @@ public partial class SettingsViewModel : ViewModelBase
 {
     private readonly Configuration _configuration;
 
-    public LocalizationHelper Loc => LocalizationHelper.Instance;
+    [ObservableProperty]
+    private LanguageProxy _loc = new();
 
     [ObservableProperty]
     private string _cryptoSoftPath = string.Empty;
@@ -29,9 +30,18 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
+    [ObservableProperty]
+    private long _maxLargeFileSizeKB;
+
+    [ObservableProperty]
+    private string _priorityExtensionsText = string.Empty;
+
+
+
     public SettingsViewModel(Configuration configuration)
     {
         _configuration = configuration;
+        LocalizationHelper.Instance.PropertyChanged += (_, _) => Loc = new LanguageProxy();
         LoadFromConfig();
     }
 
@@ -42,6 +52,10 @@ public partial class SettingsViewModel : ViewModelBase
         ExtensionsText = string.Join(", ", _configuration.ExtensionsToEncrypt ?? new List<string>());
         BusinessSoftwareName = _configuration.GetBusinessSoftwareName();
         SelectedLogFormatIndex = (_configuration.LogFormat ?? "json").ToLower() == "xml" ? 1 : 0;
+        MaxLargeFileSizeKB = _configuration.MaxLargeFileSizeKB;
+        PriorityExtensionsText = string.Join(", ", _configuration.PriorityExtensions ?? new List<string>());
+
+
     }
 
     [RelayCommand]
@@ -56,6 +70,14 @@ public partial class SettingsViewModel : ViewModelBase
         _configuration.ExtensionsToEncrypt = extensions;
         _configuration.SetBusinessSoftwareName(BusinessSoftwareName);
         _configuration.LogFormat = SelectedLogFormatIndex == 1 ? "xml" : "json";
+        _configuration.MaxLargeFileSizeKB = MaxLargeFileSizeKB;
+        var priorityExtensions = PriorityExtensionsText
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .ToList();
+        _configuration.PriorityExtensions = priorityExtensions;
+
+
+
 
         _configuration.SaveConfig();
         StatusMessage = Loc["SettingsSaved"];

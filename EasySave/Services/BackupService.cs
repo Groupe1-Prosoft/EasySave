@@ -3,210 +3,324 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using EasyLog;
 using EasySave.Models;
 
+
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Manages backup execution and logging.
-    /// </summary>
     public class BackupService
     {
-        private readonly ILogger logger;
-        private readonly Configuration configuration;
+        private readonly ILogger _logger;
+        private readonly Configuration _configuration;
+        private readonly CryptoSoftService _cryptoSoftService;
+        private readonly BusinessSoftwareMonitor _businessMonitor;
+        private readonly ManualResetEventSlim _pauseEvent = new(true);
+        private CancellationTokenSource? _stopCts;
+        private BackupState? _currentState;
+        private bool _stopRequested;
+        private bool _isRunning;
 
-        // Respecting the class diagram: explicit dependency
-        private readonly CryptoSoftService cryptoSoftService;
-        private readonly BusinessSoftwareMonitor businessMonitor;
-        private BackupState? currentState;
+        // Semaphores to manage concurrency
+        private readonly SemaphoreSlim _largeFileSemaphore = new SemaphoreSlim(1, 1);
 
-        /// <summary>
-        /// Initializes the service with configuration.
-        /// </summary>
-        public BackupService(Configuration configuration)
+        private int _priorityPendingCount = 0;
+
+
+        // Dependencies are injected to decouple object creation
+        public BackupService(
+            Configuration configuration,
+            ILogger logger,
+            CryptoSoftService cryptoSoftService,
+            BusinessSoftwareMonitor businessMonitor)
         {
-            this.configuration = configuration;
-            logger = new Logger(configuration.LogFormat);
-
-            // Initialize the sub-services
-            businessMonitor = new BusinessSoftwareMonitor();
-            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
-
-            cryptoSoftService = new CryptoSoftService();
-            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
+            _configuration = configuration;
+            _logger = logger;
+            _cryptoSoftService = cryptoSoftService;
+            _businessMonitor = businessMonitor;
         }
 
-        /// <summary>
-        /// Executes a backup job.
-        /// </summary>
+        public bool IsPaused => !_pauseEvent.IsSet;
+
+        public bool IsRunning => _isRunning;
+
+        public bool IsStopping => _stopRequested;
+
+        public void Pause()
+        {
+            if (!_isRunning || IsPaused) return;
+            _pauseEvent.Reset();
+            UpdateState("PAUSE");
+        }
+
+        public void Resume()
+        {
+            if (!_isRunning || !IsPaused) return;
+            _pauseEvent.Set();
+            UpdateState("ACTIF");
+        }
+
+        public void Stop()
+        {
+            if (!_isRunning) return;
+            _stopRequested = true;
+            _stopCts?.Cancel();
+            _pauseEvent.Set();
+            UpdateState("ARRETE");
+        }
+
         public bool ExecuteJob(BackupJob job)
         {
-            // Update CryptoSoft path in case config changed at runtime
-            cryptoSoftService.SetPath(configuration.CryptoSoftPath);
-            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
+            InitializeExecution();
 
-            if (!job.Validate()) return false;
-
-            businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
-
-
-            if (businessMonitor.IsRunning())
+            try
             {
-                var blockLog = new LogData
+                _cryptoSoftService.SetPath(_configuration.CryptoSoftPath);
+                _businessMonitor.SetProcessName(_configuration.GetBusinessSoftwareName());
+
+                if (!job.Validate()) return false;
+
+                // Stop execution if business software is detected
+                if (_businessMonitor.IsRunning())
                 {
-                    Timestamp = DateTime.Now,
-                    Name = job.Name ?? string.Empty,
-                    Source = job.SourceDir ?? string.Empty,
-                    Target = job.TargetDir ?? string.Empty,
-                    Size = 0,
-                    TransferTime = 0,
-                    EncryptionTime = -1
-                };
-                logger.WriteLog(blockLog);
-                return false;
-            }
-
-            if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
-
-            var files = GetFileList(job.SourceDir!);
-            long totalSize = CalculateTotalSize(files);
-
-            currentState = new BackupState
-            {
-                JobName = job.Name,
-                Timestamp = DateTime.Now,
-                State = "ACTIF",
-                TotalFiles = files.Count,
-                TotalSize = totalSize,
-                FilesRemaining = files.Count,
-                SizeRemaining = totalSize,
-                Progression = 0
-            };
-
-            currentState.UpdateStateJSON();
-
-            int processed = 0;
-            foreach (var file in files)
-            {
-                string relative = Path.GetRelativePath(job.SourceDir!, file);
-                string targetFile = Path.Combine(job.TargetDir!, relative);
-
-                if (job.Type == BackupType.Differential && File.Exists(targetFile))
-                {
-                    if (File.GetLastWriteTimeUtc(file) <= File.GetLastWriteTimeUtc(targetFile))
+                    var blockLog = new LogData
                     {
-                        processed++;
-                        currentState.FilesRemaining--;
-                        currentState.SizeRemaining -= new FileInfo(file).Length;
-                        UpdateProgress(processed, files.Count);
-                        continue;
-                    }
+                        Timestamp = DateTime.Now,
+                        Name = job.Name ?? string.Empty,
+                        Source = job.SourceDir ?? string.Empty,
+                        Target = job.TargetDir ?? string.Empty,
+                        Size = 0,
+                        TransferTime = 0,
+                        EncryptionTime = -1
+                    };
+                    _logger.WriteLog(blockLog);
+                    return false;
                 }
 
-                // New logic compliant with Class Diagram
-                long transferTime = CopyFile(file, targetFile);
-                long encryptionTime = 0;
+                if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
 
-                // Check eligibility using the service
-                if (cryptoSoftService.IsEligible(targetFile, configuration.ExtensionsToEncrypt))
-                {
-                    // Encrypt using the service
-                    long time = cryptoSoftService.EncryptFile(targetFile);
-                    if (time >= 0) encryptionTime = time;
-                }
+                var files = GetFileList(job.SourceDir!);
 
-                var data = new LogData
+                int priorityCount = files.Count(f => CheckPriorityRule(f));
+                Interlocked.Add(ref _priorityPendingCount, priorityCount);
+                files = files.OrderByDescending(f => CheckPriorityRule(f)).ToList();
+
+                long totalSize = CalculateTotalSize(files);
+
+                _currentState = new BackupState
                 {
+                    JobName = job.Name,
                     Timestamp = DateTime.Now,
-                    Name = job.Name ?? string.Empty,
-                    Source = file,
-                    Target = targetFile,
-                    Size = new FileInfo(file).Length,
-                    TransferTime = transferTime,
-                    EncryptionTime = encryptionTime
+                    State = "ACTIF",
+                    TotalFiles = files.Count,
+                    TotalSize = totalSize,
+                    FilesRemaining = files.Count,
+                    SizeRemaining = totalSize,
+                    Progression = 0
                 };
 
-                logger.WriteLog(data);
+                _currentState.UpdateStateJSON();
 
-                processed++;
-                currentState.FilesRemaining--;
-                currentState.SizeRemaining -= data.Size;
-                UpdateProgress(processed, files.Count);
+                int processed = 0;
+                foreach (var file in files)
+                {
+                    // Check for pause or stop requests before processing file
+                    if (!WaitIfPausedOrStopped()) return false;
+
+                    bool isPriority = CheckPriorityRule(file);
+                    if (!isPriority && _priorityPendingCount > 0)
+                    {
+                        while (_priorityPendingCount > 0)
+                        {
+                            if (_stopRequested) return false;
+                            Thread.Sleep(100);
+                        }
+                    }
+
+
+                    string relative = Path.GetRelativePath(job.SourceDir!, file);
+                    string targetFile = Path.Combine(job.TargetDir!, relative);
+
+                    if (job.Type == BackupType.Differential && File.Exists(targetFile))
+                    {
+                        if (File.GetLastWriteTimeUtc(file) <= File.GetLastWriteTimeUtc(targetFile))
+                        {
+                            processed++;
+                            _currentState.FilesRemaining--;
+                            _currentState.SizeRemaining -= new FileInfo(file).Length;
+                            UpdateProgress(processed, files.Count);
+                            continue;
+                        }
+                    }
+
+                    long transferTime;
+                    long fileSizeBytes = new FileInfo(file).Length;
+                    long limitBytes = _configuration.MaxLargeFileSizeKB * 1024;
+                    bool isLarge = limitBytes > 0 && fileSizeBytes > limitBytes;
+
+                    // Copy file (using large file semaphore if needed)
+                    if (isLarge)
+                    {
+                        _largeFileSemaphore.Wait();
+                        try
+                        {
+                            transferTime = CopyFile(file, targetFile);
+                        }
+                        finally
+                        {
+                            _largeFileSemaphore.Release();
+                        }
+                    }
+                    else
+                    {
+                        transferTime = CopyFile(file, targetFile);
+                    }
+
+                    if (isPriority)
+                        Interlocked.Decrement(ref _priorityPendingCount);
+
+
+                    long encryptionTime = 0;
+
+                    // Encrypt file using a lock to prevent concurrent access (Task 7)
+                    if (_cryptoSoftService.IsEligible(targetFile, _configuration.ExtensionsToEncrypt))
+                    {
+                        _cryptoSoftService.AcquireLock();
+                        try
+                        {
+                            long time = _cryptoSoftService.EncryptFile(targetFile);
+                            if (time >= 0) encryptionTime = time;
+                        }
+                        finally
+                        {
+                            _cryptoSoftService.ReleaseLock();
+                        }
+                    }
+
+                    var data = new LogData
+                    {
+                        Timestamp = DateTime.Now,
+                        Name = job.Name ?? string.Empty,
+                        Source = file,
+                        Target = targetFile,
+                        Size = new FileInfo(file).Length,
+                        TransferTime = transferTime,
+                        EncryptionTime = encryptionTime
+                    };
+
+                    _logger.WriteLog(data);
+
+                    processed++;
+                    _currentState.FilesRemaining--;
+                    _currentState.SizeRemaining -= data.Size;
+                    UpdateProgress(processed, files.Count);
+                }
+
+                if (_stopRequested)
+                {
+                    UpdateState("ARRETE");
+                    return false;
+                }
+
+                UpdateState("NON ACTIF");
+                return true;
             }
-
-            currentState.State = "NON ACTIF";
-            currentState.Timestamp = DateTime.Now;
-            currentState.UpdateStateJSON();
-
-            return true;
+            finally
+            {
+                _isRunning = false;
+                _pauseEvent.Set();
+                _stopCts?.Dispose();
+                _stopCts = null;
+            }
         }
 
-        /// <summary>
-        /// Executes several jobs sequentially by their identifiers.
-        /// </summary>
         public bool ExecuteSequential(List<int> ids)
         {
             bool success = true;
-            var jobs = configuration.GetJobs();
-
             foreach (int id in ids)
             {
+                if (_stopRequested) break;
+
+                var jobs = _configuration.GetJobs();
                 var job = jobs.FirstOrDefault(j => j.Id == id);
-                if (job == null)
+                if (job != null)
                 {
-                    success = false;
-                    continue;
+                    bool result = ExecuteJob(job);
+                    success &= result;
+
+                    if (_stopRequested) break;
                 }
-                businessMonitor.SetProcessName(configuration.GetBusinessSoftwareName());
-
-
-                if (businessMonitor.IsRunning()) break;
-
-                if (!ExecuteJob(job)) success = false;
-
             }
-
-            return success;
+            return success && !_stopRequested;
+        }
+      
+        private long CopyFile(string source, string target)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(source, target, overwrite: true);
+            stopwatch.Stop();
+            return stopwatch.ElapsedMilliseconds;
         }
 
-        private long CopyFile(string source, string dest)
+        private List<string> GetFileList(string sourceDir)
         {
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                File.Copy(source, dest, true);
-                stopwatch.Stop();
-                return stopwatch.ElapsedMilliseconds;
-            }
-            catch
-            {
-                return -1;
-            }
-        }
-
-        private List<string> GetFileList(string directory)
-        {
-            return Directory.GetFiles(directory, "*", SearchOption.AllDirectories).ToList();
+            if (!Directory.Exists(sourceDir)) return new List<string>();
+            return Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories).ToList();
         }
 
         private long CalculateTotalSize(List<string> files)
         {
-            long size = 0;
-            foreach (var file in files)
-            {
-                size += new FileInfo(file).Length;
-            }
-            return size;
+            return files.Sum(f => new FileInfo(f).Length);
         }
 
-        private void UpdateProgress(int current, int total)
+        private void UpdateProgress(int processed, int total)
         {
-            if (currentState == null) return;
-            currentState.Progression = total == 0 ? 0 : (int)((current * 100.0) / total);
-            currentState.Timestamp = DateTime.Now;
-            currentState.UpdateStateJSON();
+            if (_currentState == null) return;
+            _currentState.Progression = (int)((processed / (double)total) * 100);
+            _currentState.UpdateStateJSON();
         }
+
+        private void InitializeExecution()
+        {
+            _stopRequested = false;
+            _isRunning = true;
+            _pauseEvent.Set();
+            _stopCts?.Dispose();
+            _stopCts = new CancellationTokenSource();
+        }
+
+        private bool WaitIfPausedOrStopped()
+        {
+            if (_stopRequested) return false;
+            try
+            {
+                _pauseEvent.Wait(_stopCts?.Token ?? CancellationToken.None);
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            return !_stopRequested;
+        }
+
+        private void UpdateState(string state)
+        {
+            if (_currentState == null) return;
+            _currentState.State = state;
+            _currentState.Timestamp = DateTime.Now;
+            _currentState.UpdateStateJSON();
+        }
+
+        private bool CheckPriorityRule(string filePath)
+        {
+            var ext = Path.GetExtension(filePath)?.ToLower().TrimStart('.');
+            var priorities = _configuration.PriorityExtensions;
+            if (priorities == null || priorities.Count == 0)
+                return false;
+            return priorities.Any(p => p.ToLower().TrimStart('.') == ext);
+        }
+
     }
 }

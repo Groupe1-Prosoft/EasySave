@@ -13,18 +13,25 @@ namespace EasySave.Models
     {
         private const string configFilePath = "config.json";
 
-        // Attributs privés (comme sur le diagramme)
+        // Private attributes (as seen in the diagram)
         private readonly List<BackupJob> jobs = new();
         private string logFormat = "json";
         private string businessSoftwareName = string.Empty;
 
-        // Note: Le diagramme nomme ceci 'encryptExtensions' en privé
+        // Note: The diagram calls this private attribute 'encryptExtensions'
         private List<string> encryptExtensions = new();
+        private readonly object _lock = new();
 
-        // On garde CryptoSoftPath pour que ça marche (implémentation nécessaire)
+        // We keep CryptoSoftPath to make it work (required implementation)
         public string CryptoSoftPath { get; set; } = string.Empty;
 
-        // --- Méthodes conformes au diagramme ---
+        public long MaxLargeFileSizeKB { get; set; } = 0;
+
+        public List<string> PriorityExtensions { get; set; } = new();
+
+
+
+        // --- Methods matching the diagram ---
 
         public string GetBusinessSoftwareName()
         {
@@ -41,14 +48,14 @@ namespace EasySave.Models
             return logFormat;
         }
 
-        // On garde la propriété LogFormat pour le binding JSON, mais on ajoute le Setter du diagramme
+        // We keep the LogFormat property for JSON binding, but add the Setter from the diagram
         public void SetLogFormat(string format)
         {
             logFormat = string.IsNullOrWhiteSpace(format) ? "json" : format.ToLower();
         }
 
-        // Propriété Property C# pour faciliter la sérialisation JSON, 
-        // mais on utilise les méthodes ci-dessous pour respecter le diagramme.
+        // C# Property to make JSON serialization easier, 
+        // but we use the methods below to respect the diagram.
         public string LogFormat
         {
             get => GetLogFormat();
@@ -56,7 +63,7 @@ namespace EasySave.Models
         }
 
         /// <summary>
-        /// Conforme au diagramme : Retourne la liste des extensions.
+        /// Matches the diagram: Returns the list of extensions.
         /// </summary>
         public List<string> GetEncryptExtensions()
         {
@@ -64,14 +71,14 @@ namespace EasySave.Models
         }
 
         /// <summary>
-        /// Conforme au diagramme : Définit la liste des extensions.
+        /// Matches the diagram: Sets the list of extensions.
         /// </summary>
         public void SetEncryptExtensions(List<string> ext)
         {
             encryptExtensions = ext;
         }
 
-        // Propriété wrapper pour la sérialisation JSON (JsonSerializer a besoin de propriétés publiques)
+        // Wrapper property for JSON serialization (JsonSerializer needs public properties)
         public List<string> ExtensionsToEncrypt
         {
             get => encryptExtensions;
@@ -107,65 +114,79 @@ namespace EasySave.Models
 
         public bool LoadConfig()
         {
-            try
+            lock (_lock)
             {
-                string path = GetConfigFullPath();
-                if (!File.Exists(path)) return true;
+                try
+                {
+                    string path = GetConfigFullPath();
+                    if (!File.Exists(path)) return true;
 
-                string json = File.ReadAllText(path);
-                var data = JsonSerializer.Deserialize<ConfigurationData>(json);
+                    string json = File.ReadAllText(path);
+                    var data = JsonSerializer.Deserialize<ConfigurationData>(json);
 
-                jobs.Clear();
-                if (data?.Jobs != null) jobs.AddRange(data.Jobs);
+                    jobs.Clear();
+                    if (data?.Jobs != null) jobs.AddRange(data.Jobs);
 
-                SetLogFormat(data?.LogFormat ?? "json");
-                SetBusinessSoftwareName(data?.BusinessSoftwareName ?? string.Empty);
+                    SetLogFormat(data?.LogFormat ?? "json");
+                    SetBusinessSoftwareName(data?.BusinessSoftwareName ?? string.Empty);
 
-                // Chargement des extensions et du chemin CryptoSoft
-                CryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
-                SetEncryptExtensions(data?.ExtensionsToEncrypt ?? new List<string>());
+                    // Loading extensions and CryptoSoft path
+                    CryptoSoftPath = data?.CryptoSoftPath ?? string.Empty;
+                    SetEncryptExtensions(data?.ExtensionsToEncrypt ?? new List<string>());
 
-                return true;
-            }
-            catch
-            {
-                return false;
+                    MaxLargeFileSizeKB = data?.MaxLargeFileSizeKB ?? 0;
+
+                    PriorityExtensions = data?.PriorityExtensions ?? new List<string>();
+
+
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
 
         public bool SaveConfig()
         {
-            try
+            lock (_lock)
             {
-                string path = GetConfigFullPath();
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-
-                var data = new ConfigurationData
+                try
                 {
-                    Jobs = jobs,
-                    LogFormat = logFormat,
-                    BusinessSoftwareName = businessSoftwareName,
-                    CryptoSoftPath = CryptoSoftPath,
-                    ExtensionsToEncrypt = encryptExtensions
-                };
+                    string path = GetConfigFullPath();
+                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(path, JsonSerializer.Serialize(data, options));
-                return true;
-            }
-            catch
-            {
-                return false;
+                    var data = new ConfigurationData
+                    {
+                        Jobs = jobs,
+                        LogFormat = logFormat,
+                        BusinessSoftwareName = businessSoftwareName,
+                        CryptoSoftPath = CryptoSoftPath,
+                        ExtensionsToEncrypt = encryptExtensions,
+                        MaxLargeFileSizeKB = MaxLargeFileSizeKB,
+                        PriorityExtensions = PriorityExtensions
+
+                    };
+
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    File.WriteAllText(path, JsonSerializer.Serialize(data, options));
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
-
         private static string GetConfigFullPath()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             return Path.Combine(appData, "EasySave", configFilePath);
         }
 
-        // Classe interne pour la structure JSON
+        // Internal class for the JSON structure
         private sealed class ConfigurationData
         {
             public List<BackupJob> Jobs { get; set; } = new();
@@ -173,6 +194,12 @@ namespace EasySave.Models
             public string BusinessSoftwareName { get; set; } = string.Empty;
             public string CryptoSoftPath { get; set; } = string.Empty;
             public List<string> ExtensionsToEncrypt { get; set; } = new();
+
+            public long MaxLargeFileSizeKB { get; set; } = 0;
+
+            public List<string> PriorityExtensions { get; set; } = new();
+
+
         }
     }
 }

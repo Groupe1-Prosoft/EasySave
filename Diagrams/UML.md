@@ -1,5 +1,5 @@
 
-#  Diagrams EasySave 1.0 - Livrable 1
+#  Diagrams EasySave 3.0 - Livrable 3
 
 ### Before writing code, the most critical is to have a clear and comprehensive understanding of the application's architecture. Rushing into implementation without proper planning often leads to a mid structured code, technical debt, and costly refactoring later in the project lifecycle.
 
@@ -8,227 +8,424 @@
 #### A Use Case Diagram is a behavioral UML diagram that captures the functional requirements of a system by showing the interactions between users (actors) and the system's features (use cases). This diagram provides a high-level overview of what the EasySave application can do from the user's perspective. It shows that a user can create, list, execute, and delete backup jobs, as well as change the application language. It also illustrates that backup jobs can be either Full or Differential, and that executing a backup includes generating logs and updating the state file.
 
 ```mermaid
-
 ---
 config:
   layout: dagre
 ---
 flowchart LR
- subgraph S["EasySave 2.0 (Avalonia GUI)"]
+ subgraph S["EasySave 3.0 (Avalonia GUI)"]
     direction TB
         UC_Create(["Create Backup Job"])
         UC_List(["List Backup Jobs"])
         UC_Exec(["Execute Backup"])
-        UC_ExecSeq(["Execute Sequential Backups"])
+        UC_ExecPar(["Execute Parallel Backups"])
         UC_Del(["Delete Backup Job"])
         UC_Lang(["Change Language"])
         UC_Settings(["Manage Settings"])
         UC_Full(["Perform Full Backup"])
         UC_Diff(["Perform Differential Backup"])
-        UC_Log(["Write Daily Log"])
-        UC_State(["Update State File"])
         UC_Encrypt(["Encrypt File"])
-        UC_Detect(["Detect Software"])
         UC_LogFormat(["Choose Log Format"])
         UC_SetExtensions(["Set Encrypted Extensions"])
-        UC_SetBusiness(["Set  Software"])
+        UC_SetBusiness(["Set Business Software"])
+        UC_ChooseType(["Choose Backup Type"])
+        UC_Pause(["Pause Job(s)"])
+        UC_Resume(["Resume Job(s)"])
+        UC_Stop(["Stop Job(s)"])
+        UC_SetPriority(["Set Priority Extensions"])
+        UC_SetMaxSize(["Set Max Large File Size"])
+        UC_SetLogMode(["Set Log Mode (Docker)"])
   end
-    U(("User")) --> UC_Create & UC_List & UC_Exec & UC_ExecSeq & UC_Del & UC_Lang & UC_Settings
-    UC_Full -. "«extend»<br/>[type = Full]" .-> UC_Exec
-    UC_Diff -. "«extend»<br/>[type = Differential]" .-> UC_Exec
-    UC_Exec -. "«include»" .-> UC_Log
-    UC_Exec -. "«include»" .-> UC_State
-    UC_Exec -. "«include»" .-> UC_Encrypt
-    UC_Exec -. "«include»" .-> UC_Detect
-    UC_ExecSeq -. "«include»" .-> UC_Exec
+
+    U(("User")) --> UC_Create & UC_List & UC_Exec & UC_ExecPar & UC_Del & UC_Lang & UC_Settings
+
+    UC_Exec -. "«include»" .-> UC_ChooseType
+    UC_Full -. "«extend»<br/>[type = Full]" .-> UC_ChooseType
+    UC_Diff -. "«extend»<br/>[type = Differential]" .-> UC_ChooseType
+    UC_Encrypt -. "«extend»<br/>[file eligible]" .-> UC_Exec
+    UC_ExecPar -. "«include»" .-> UC_Exec
+    UC_Pause -. "«extend»<br/>[job running]" .-> UC_Exec
+    UC_Resume -. "«extend»<br/>[job paused]" .-> UC_Exec
+    UC_Stop -. "«extend»<br/>[job running or paused]" .-> UC_Exec
     UC_Settings -. "«include»" .-> UC_LogFormat
     UC_Settings -. "«include»" .-> UC_SetExtensions
     UC_Settings -. "«include»" .-> UC_SetBusiness
+    UC_Settings -. "«include»" .-> UC_SetPriority
+    UC_Settings -. "«include»" .-> UC_SetMaxSize
+    UC_Settings -. "«include»" .-> UC_SetLogMode
 
      UC_Create:::caseStyle
      UC_List:::caseStyle
      UC_Exec:::caseStyle
-     UC_ExecSeq:::caseStyle
+     UC_ExecPar:::caseStyle
      UC_Del:::caseStyle
      UC_Lang:::caseStyle
      UC_Settings:::caseStyle
      UC_Full:::caseStyle
      UC_Diff:::caseStyle
-     UC_Log:::caseStyle
-     UC_State:::caseStyle
      UC_Encrypt:::caseStyle
-     UC_Detect:::caseStyle
      UC_LogFormat:::caseStyle
      UC_SetExtensions:::caseStyle
      UC_SetBusiness:::caseStyle
+     UC_ChooseType:::caseStyle
+     UC_Pause:::caseStyle
+     UC_Resume:::caseStyle
+     UC_Stop:::caseStyle
+     UC_SetPriority:::caseStyle
+     UC_SetMaxSize:::caseStyle
+     UC_SetLogMode:::caseStyle
+
      U:::actorStyle
     classDef actorStyle fill:#fff,stroke:#000,stroke-width:2px
     classDef caseStyle fill:#fff,stroke:#000,stroke-width:1px,rx:20,ry:20
 ```
 
+
     
 ## 2. Class
 
 #### A Class Diagram is a structural UML diagram that represents the static structure of a system by showing its classes, attributes, methods, and the relationships between them. This diagram defines the architecture of the EasySave application. It shows how different components interact: the Program entry point connects to ConsoleView and Configuration, the BackupService handles the backup logic while updating BackupState and using the Logger (from an external DLL), and Configuration manages up to 5 BackupJob instances. The relationships (composition, association, dependency) clarify how objects are created and used throughout the system.
+
+
 ```mermaid
 classDiagram
 
-    class Program {
-        +Main(args: string[])$
+    namespace GUI_Avalonia {
+        class Program:::guiStyle {
+            +Main(args: string[])$
+        }
+        class MainWindow:::guiStyle {
+            <<Avalonia View>>
+            -dataContext: MainWindowViewModel
+        }
+        class ViewModelBase:::guiStyle {
+            <<abstract>>
+        }
+        class MainWindowViewModel:::guiStyle {
+            -homeViewModel: HomeViewModel
+            -settingsViewModel: SettingsViewModel
+            -currentPage: ViewModelBase
+            -isPaneOpen: bool
+            +Loc: LanguageProxy «property»
+            +TogglePaneCommand()
+            +NavigateCommand(page: string)
+            +SwitchLanguageCommand(language: string)
+        }
+
+        class HomeViewModel:::guiStyle {
+            -configuration: Configuration
+            -backupService: BackupService
+            +Jobs: ObservableCollection~SelectableJob~ «property»
+            +Loc: LanguageProxy «property»
+            -newName: string
+            -newSourceDir: string
+            -newTargetDir: string
+            -selectedTypeIndex: int
+            -statusMessage: string
+            -isExecuting: bool
+            -isPaused: bool
+            +PauseResumeText: string
+            +CreateJobCommand()
+            +ExecuteSelectedCommand()
+            +DeleteSelectedCommand()
+            +ExecuteJobCommand(job: BackupJob)
+            +DeleteJobCommand(job: BackupJob)
+            +SelectAllCommand()
+            +PauseResumeCommand()
+            +StopCommand()
+        }
+
+        class SettingsViewModel:::guiStyle {
+            -configuration: Configuration
+            +Loc: LanguageProxy «property»
+            -cryptoSoftPath: string
+            -extensionsText: string
+            -businessSoftwareName: string
+            -selectedLogFormatIndex: int
+            -statusMessage: string
+            -priorityExtensionsText: string
+            -maxLargeFileSizeKB: long
+            -selectedLogModeIndex: int
+            -dockerServerUrl: string
+            +SaveCommand()
+        }
+        class LogsViewModel:::guiStyle {
+            +Logs: ObservableCollection~LogEntry~ «property»
+            +Loc: LanguageProxy «property»
+            -statusMessage: string
+            +LoadLogsCommand()
+        }
+        class LocalizationHelper:::guiStyle {
+            <<singleton>>
+            +Instance: LocalizationHelper «static»
+            +CurrentLanguage: string «property»
+            +SwitchLanguage(lang: string)
+        }
+        class LanguageProxy:::guiStyle {
+            +this[key: string]: string «indexer»
+        }
+        class LanguageManager:::guiStyle {
+            -currentLanguage: string
+            -translations: Dictionary~string, string~
+            +SetLanguage(lang: string)
+            +GetText(key: string) string
+            +LoadTranslations() bool
+        }
     }
 
-    class MainWindow {
-        <<Avalonia View>>
-        -dataContext: MainViewModel
+    namespace ConsoleApp {
+        class ServiceContainer:::consoleStyle {
+            -_languageManager: LanguageManager
+            -_configuration: Configuration
+            -_view: ConsoleView
+            -_logger: ILogger
+            -_backupService: BackupService
+            -_businessSoftwareMonitor: BusinessSoftwareMonitor
+            -_cryptoSoftService: CryptoSoftService
+            +GetConfiguration() Configuration
+            +GetLanguageManager() LanguageManager
+            +GetConsoleView() ConsoleView
+            +GetBackupService() BackupService
+            +GetLogger() ILogger
+            +RefreshBackupService()
+        }
+        class MenuController:::consoleStyle {
+            -_services: ServiceContainer
+            -_backupService: BackupService
+            -_configuration: Configuration
+            -_view: ConsoleView
+            -_languageManager: LanguageManager
+            +Run()
+            -SetupLanguageAndFormat()
+            -HandleMenuOption(choice: string) bool
+            -HandleListJobs() bool
+            -HandleCreateJob() bool
+            -HandleExecuteJob() bool
+            -HandleExecuteAllJobs() bool
+            -HandleDeleteJob() bool
+            -HandleChangeLogFormat() bool
+            -HandleInvalidOption() bool
+            -RunBackupWithControls(execute: Func~bool~) bool
+            -HandleExecutionResult(result: bool)
+        }
+
+        class ConsoleView:::consoleStyle {
+            -_languageManager: LanguageManager
+            +ShowMenu()
+            +SelectLogFormat() string
+            +GetInput() string
+            +ShowProgress(state: BackupState)
+            +DisplayError(message: string)
+            +ShowExecutionControls()
+            +ShowStatus(message: string)
+        }
+
     }
 
-    class MainViewModel {
-        -backupService: BackupService
-        -configuration: Configuration
-        -languageManager: LanguageManager
-        +Jobs: ObservableCollection~BackupJob~ «property»
-        +SelectedJob: BackupJob «property»
-        +CreateJobCommand()
-        +DeleteJobCommand()
-        +ExecuteJobCommand()
-        +ExecuteSequentialCommand()
-        +ChangeLanguageCommand()
-        +SaveSettingsCommand()
+    namespace Core {
+
+        class BackupService:::coreStyle {
+            -_logger: ILogger
+            -_configuration: Configuration
+            -_cryptoSoftService: CryptoSoftService
+            -_businessMonitor: BusinessSoftwareMonitor
+            -_pauseEvent: ManualResetEventSlim
+            -_stopCts: CancellationTokenSource
+            -_currentState: BackupState
+            -_stopRequested: bool
+            -_isRunning: bool
+            -_largeFileSemaphore: SemaphoreSlim
+            -_priorityPendingCount: int
+            +IsPaused: bool
+            +IsRunning: bool
+            +IsStopping: bool
+            +ExecuteJob(job: BackupJob) bool
+            +ExecuteSequential(ids: List~int~) bool
+            +Pause()
+            +Resume()
+            +Stop()
+            -CopyFile(source: string, dest: string) long
+            -GetFileList(directory: string) List~string~
+            -CalculateTotalSize(files: List~string~) long
+            -CheckPriorityRule(filePath: string) bool
+
+        }
+
+        class CryptoSoftService:::coreStyle {
+            -cryptoSoftPath: string
+            -_mutex: Mutex
+            +EncryptFile(filePath: string) long
+            +IsEligible(filePath: string, extensions: List~string~) bool
+            +AcquireLock() bool
+            +ReleaseLock()
+        }
+        class BusinessSoftwareMonitor:::coreStyle {
+            -processName: string
+            -_isMonitoring: bool
+            +IsRunning() bool
+            +SetProcessName(name: string)
+            +StartMonitoring()
+            +StopMonitoring()
+        }
+        class BackupState:::coreStyle {
+            +JobName: string «property»
+            +Timestamp: DateTime «property»
+            +State: string «property»
+            +TotalFiles: int «property»
+            +TotalSize: long «property»
+            +Progression: int «property»
+            +FilesRemaining: int «property»
+            +SizeRemaining: long «property»
+            +CurrentSourceFile: string «property»
+            +CurrentTargetFile: string «property»
+            +UpdateStateJSON() bool
+            +UpdateStateXML() bool
+            +ToJSON() string
+            +ToXML() string
+        }
+        class BackupJob:::coreStyle {
+            +Id: int «property»
+            +Name: string «property»
+            +SourceDir: string «property»
+            +TargetDir: string «property»
+            +Type: BackupType «property»
+            +Validate() bool
+        }
+        class BackupType:::coreStyle {
+            <<enumeration>>
+            Full
+            Differential
+        }
+        class LogMode:::coreStyle {
+            <<enumeration>>
+            Local
+            Remote
+            Both
+        }
+        class Configuration:::coreStyle {
+            -jobs: List~BackupJob~
+            -configFilePath: string «const»
+            -logFormat: string
+            -encryptExtensions: List~string~
+            -businessSoftwareName: string
+            -_lock: object
+            +CryptoSoftPath: string «property»
+            +PriorityExtensions: List~string~ «property»
+            +MaxLargeFileSizeKB: long «property»
+            +LogMode: LogMode «property»
+            +DockerServerUrl: string «property»
+            +GetJobs() List~BackupJob~
+            +AddJob(job: BackupJob) bool
+            +RemoveJob(id: int) bool
+            +LoadConfig() bool
+            +SaveConfig() bool
+            +GetEncryptExtensions() List~string~
+            +SetEncryptExtensions(ext: List~string~)
+            +GetBusinessSoftwareName() string
+            +SetBusinessSoftwareName(name: string)
+            +GetLogFormat() string
+            +SetLogFormat(format: string)
+        }
     }
 
-    class LanguageManager {
-        -currentLanguage: string
-        -translations: Dictionary~string, string~
-        +SetLanguage(lang: string)
-        +GetText(key: string) string
-        +LoadTranslations() bool
+    namespace EasyLog_DLL {
+        class ILogger:::logStyle {
+            <<interface>>
+            +WriteLog(data: LogData) bool
+        }
+        class Logger:::logStyle {
+            -logFilePath: string
+            -logFormat: string
+            -_lock: object
+            +WriteLog(data: LogData) bool
+            +CreateDailyLogFile() string
+        }
+        class LogDispatcher:::logStyle {
+            -_localLogger: Logger
+            -_remoteLogger: RemoteLogService
+            -_mode: LogMode
+            +WriteLog(data: LogData) bool
+        }
+        class RemoteLogService:::logStyle {
+            -_serverUrl: string
+            -_machineId: string
+            +SendLog(data: LogData) bool
+            +Connect(url: string) bool
+            +Disconnect()
+        }
+        class LogData:::logStyle {
+            +Timestamp: DateTime «property»
+            +Name: string «property»
+            +Source: string «property»
+            +Target: string «property»
+            +Size: long «property»
+            +TransferTime: long «property»
+            +EncryptionTime: long «property»
+            +ToJSON() string
+            +ToXML() string
+        }
     }
 
-    class Configuration {
-        -jobs: List~BackupJob~
-        -configFilePath: string «const»
-        -logFormat: string
-        -encryptExtensions: List~string~
-        -businessSoftwareName: string
-        +GetJobs() List~BackupJob~
-        +AddJob(job: BackupJob) bool
-        +RemoveJob(id: int) bool
-        +LoadConfig() bool
-        +SaveConfig() bool
-        +GetEncryptExtensions() List~string~
-        +SetEncryptExtensions(ext: List~string~)
-        +GetBusinessSoftwareName() string
-        +SetBusinessSoftwareName(name: string)
-        +GetLogFormat() string
-        +SetLogFormat(format: string)
-    }
+    
+    classDef guiStyle     fill:#ffd6d6,stroke:#cc0000,color:#000
+    classDef consoleStyle fill:#fff3cd,stroke:#d4930a,color:#000
+    classDef coreStyle    fill:#d4edda,stroke:#28a745,color:#000
+    classDef logStyle     fill:#cce5ff,stroke:#0056b3,color:#000
 
-    class BackupService {
-        -logger: Logger
-        -configuration: Configuration
-        -cryptoSoftService: CryptoSoftService
-        -businessMonitor: BusinessSoftwareMonitor
-        +ExecuteJob(job: BackupJob) bool
-        +ExecuteSequential(ids: List~int~) bool
-        -CopyFile(source: string, dest: string) long
-        -GetFileList(directory: string) List~string~
-        -CalculateTotalSize(files: List~string~) long
-        -UpdateProgress(current: int, total: int)
-    }
-
-    class CryptoSoftService {
-        -cryptoSoftPath: string
-        +EncryptFile(filePath: string) long
-        +IsEligible(filePath: string, extensions: List~string~) bool
-    }
-
-    class BusinessSoftwareMonitor {
-        -processName: string
-        +IsRunning() bool
-        +SetProcessName(name: string)
-    }
-
-    class BackupState {
-        +JobName: string «property»
-        +Timestamp: DateTime «property»
-        +State: string «property»
-        +TotalFiles: int «property»
-        +TotalSize: long «property»
-        +Progression: int «property»
-        +FilesRemaining: int «property»
-        +SizeRemaining: long «property»
-        +CurrentSourceFile: string «property»
-        +CurrentTargetFile: string «property»
-        +UpdateStateJSON() bool
-        +UpdateStateXML() bool
-        +ToJSON() string
-        +ToXML() string
-    }
-
-    class BackupJob {
-        +Id: int «property»
-        +Name: string «property»
-        +SourceDir: string «property»
-        +TargetDir: string «property»
-        +Type: BackupType «property»
-        +Validate() bool
-    }
-
-    class BackupType {
-        <<enumeration>>
-        Full
-        Differential
-    }
-
-    class ILogger {
-        <<interface>>
-        <<EasyLog_DLL>>
-        +WriteLog(data: LogData) bool
-    }
-
-    class Logger {
-        <<EasyLog_DLL>>
-        -logFilePath: string
-        -logFormat: string
-        +WriteLog(data: LogData) bool
-        +CreateDailyLogFile() string
-    }
-
-    class LogData {
-        <<EasyLog_DLL>>
-        +Timestamp: DateTime «property»
-        +Name: string «property»
-        +Source: string «property»
-        +Target: string «property»
-        +Size: long «property»
-        +TransferTime: long «property»
-        +EncryptionTime: long «property»
-        +ToJSON() string
-        +ToXML() string
-    }
-
+   
     Program *-- MainWindow : creates
-    Program *-- MainViewModel : creates
-    MainWindow --> MainViewModel : binds to
+    Program *-- MainWindowViewModel : creates
+    MainWindow --> MainWindowViewModel : binds to
+    ViewModelBase <|-- MainWindowViewModel
+    ViewModelBase <|-- HomeViewModel
+    ViewModelBase <|-- SettingsViewModel
+    ViewModelBase <|-- LogsViewModel
+    MainWindowViewModel *-- HomeViewModel : creates
+    MainWindowViewModel *-- SettingsViewModel : creates
+    HomeViewModel --> BackupService : uses
+    HomeViewModel --> Configuration : uses
+    SettingsViewModel --> Configuration : uses
+    LocalizationHelper --> LanguageManager : delegates to
+    LanguageProxy --> LanguageManager : reads via
+    MainWindowViewModel --> LocalizationHelper : subscribes to
+    HomeViewModel --> LocalizationHelper : subscribes to
+    SettingsViewModel --> LocalizationHelper : subscribes to
+    LogsViewModel --> LocalizationHelper : subscribes to
 
-    MainViewModel --> BackupService : uses
-    MainViewModel --> Configuration : uses
-    MainViewModel --> LanguageManager : uses
-
+    
     BackupService --> Configuration : reads config
-    BackupService ..> BackupState : creates & updates
     BackupService ..> LogData : creates
     BackupService --> ILogger : calls
     BackupService --> CryptoSoftService : uses
     BackupService --> BusinessSoftwareMonitor : checks
-
     Configuration *-- "*" BackupJob : contains
     BackupJob --> BackupType : has type
+    Configuration --> LogMode : uses
 
+    
     ILogger <|.. Logger : implements
+    ILogger <|.. LogDispatcher : implements
+    LogDispatcher --> Logger : local write
+    LogDispatcher --> RemoteLogService : remote write
     Logger ..> LogData : writes
-```
+    RemoteLogService ..> LogData : sends
 
+    
+    ServiceContainer *-- Configuration : creates
+    ServiceContainer *-- ConsoleView : creates
+    ServiceContainer *-- BackupService : creates
+    ServiceContainer *-- BusinessSoftwareMonitor : creates
+    ServiceContainer *-- CryptoSoftService : creates
+    ServiceContainer --> LanguageManager : uses
+    ServiceContainer --> ILogger : uses
+    MenuController --> ServiceContainer : uses
+    MenuController --> BackupService : calls
+    MenuController --> Configuration : reads
+    MenuController --> ConsoleView : uses
+    MenuController --> LanguageManager : uses
+    ConsoleView --> LanguageManager : uses
+    ConsoleView ..> BackupState : displays
+```
  
 ## 3. Sequence Diagram Creation backup
 
@@ -242,22 +439,18 @@ classDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant Configuration
-    participant BackupJob
 
     User->>MainWindow: Click "Create backup job"
-    MainWindow->>MainViewModel: CreateJobCommand()
+    MainWindow->>HomeViewModel: CreateJobCommand()
 
-    MainViewModel->>BackupJob: new BackupJob()
-    BackupJob->>BackupJob: Validate()
-    BackupJob-->>MainViewModel: Valid job
-
-    MainViewModel->>Configuration: AddJob()
+    HomeViewModel->>Configuration: AddJob(job)
+    Configuration->>Configuration: job.Validate()
     Configuration->>Configuration: SaveConfig()
-    Configuration-->>MainViewModel: Success
+    Configuration-->>HomeViewModel: Success
 
-    MainViewModel-->>MainWindow: Update Jobs list
+    HomeViewModel-->>MainWindow: Update Jobs list
     MainWindow-->>User: Job displayed in list
 ```
 
@@ -269,7 +462,7 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant BackupService
     participant BusinessSoftwareMonitor
     participant CryptoSoftService
@@ -277,16 +470,16 @@ sequenceDiagram
     participant ILogger
 
     User->>MainWindow: Click "Execute"
-    MainWindow->>MainViewModel: ExecuteJobCommand()
-    MainViewModel->>BackupService: ExecuteJob()
+    MainWindow->>HomeViewModel: ExecuteJobCommand()
+    HomeViewModel->>BackupService: ExecuteJob()
 
     BackupService->>BusinessSoftwareMonitor: IsRunning()
 
     alt Business software detected
         BusinessSoftwareMonitor-->>BackupService: true
         BackupService->>ILogger: WriteLog()
-        BackupService-->>MainViewModel: Backup blocked
-        MainViewModel-->>MainWindow: Display error
+        BackupService-->>HomeViewModel: Backup blocked
+        HomeViewModel-->>MainWindow: Display error
     else No business software
         BusinessSoftwareMonitor-->>BackupService: false
         BackupService->>BackupState: new BackupState()
@@ -298,8 +491,8 @@ sequenceDiagram
             BackupService->>BackupState: UpdateStateJSON()
         end
 
-        BackupService-->>MainViewModel: Backup completed
-        MainViewModel-->>MainWindow: Update status
+        BackupService-->>HomeViewModel: Backup completed
+        HomeViewModel-->>MainWindow: Update status
     end
 ```
 
@@ -312,22 +505,17 @@ sequenceDiagram
    sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant Configuration
 
     User->>MainWindow: Click "Delete job"
-    MainWindow->>MainViewModel: DeleteJobCommand()
+    MainWindow->>HomeViewModel: DeleteJobCommand()
 
-    MainViewModel->>MainWindow: Confirm deletion?
-    MainWindow->>User: Display confirmation dialog
-    User->>MainWindow: Confirm
-
-    MainWindow->>MainViewModel: Confirmed
-    MainViewModel->>Configuration: RemoveJob()
+    HomeViewModel->>Configuration: RemoveJob()
     Configuration->>Configuration: SaveConfig()
-    Configuration-->>MainViewModel: Job removed
+    Configuration-->>HomeViewModel: Job removed
 
-    MainViewModel-->>MainWindow: Update Jobs list
+    HomeViewModel-->>MainWindow: Update Jobs list
     MainWindow-->>User: Job removed from list  
 ```
 
@@ -338,18 +526,29 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant MainWindowViewModel
+    participant HomeViewModel
+    participant SettingsViewModel
+    participant LogsViewModel
+    participant LocalizationHelper
     participant LanguageManager
 
-    User->>MainWindow: Select language
-    MainWindow->>MainViewModel: ChangeLanguageCommand()
+    User->>MainWindow: Select language (FR/EN)
+    MainWindow->>MainWindowViewModel: SwitchLanguageCommand(lang)
 
-    MainViewModel->>LanguageManager: SetLanguage()
+    MainWindowViewModel->>LocalizationHelper: SwitchLanguage(lang)
+    LocalizationHelper->>LanguageManager: SetLanguage(lang)
     LanguageManager->>LanguageManager: LoadTranslations()
-    LanguageManager-->>MainViewModel: Language changed
+    LanguageManager-->>LocalizationHelper: done
 
-    MainViewModel-->>MainWindow: Update UI bindings
-    MainWindow-->>User: Interface refreshed
+    LocalizationHelper-->>MainWindowViewModel: PropertyChanged
+    LocalizationHelper-->>HomeViewModel: PropertyChanged
+    LocalizationHelper-->>SettingsViewModel: PropertyChanged
+    LocalizationHelper-->>LogsViewModel: PropertyChanged
+
+    Note over MainWindowViewModel,LogsViewModel: Each VM assigns Loc = new LanguageProxy()<br/>Avalonia detects new reference → re-evaluates all Loc[Key] bindings
+
+    MainWindow-->>User: Interface refreshed (all pages, instantly)
 ```
 
 ## 7. Sequence Diagram differential backup
@@ -359,18 +558,16 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant MainWindow
-    participant MainViewModel
+    participant HomeViewModel
     participant BackupService
-    participant BackupJob
     participant CryptoSoftService
     participant ILogger
 
     User->>MainWindow: Click "Execute differential"
-    MainWindow->>MainViewModel: ExecuteJobCommand()
-    MainViewModel->>BackupService: ExecuteJob()
+    MainWindow->>HomeViewModel: ExecuteJobCommand()
+    HomeViewModel->>BackupService: ExecuteJob()
 
-    BackupService->>BackupJob: GetType()
-    BackupJob-->>BackupService: DIFFERENTIAL
+   BackupService->>BackupService: Check job.Type == Differential
 
     loop For each file in source
         BackupService->>BackupService: IsFileModified()
@@ -384,8 +581,8 @@ sequenceDiagram
         end
     end
 
-    BackupService-->>MainViewModel: Backup completed
-    MainViewModel-->>MainWindow: Update status
+    BackupService-->>HomeViewModel: Backup completed
+    HomeViewModel-->>MainWindow: Update status
 ```
 
 ## 8. Activity diagram
@@ -394,58 +591,60 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    Start([Start]) --> LoadJob[Load selected Backup Job]
+    Start([Start]) --> LoadJobs[Load selected jobs]
+    LoadJobs --> LaunchPar[Launch all jobs in parallel]
 
-    LoadJob --> ValidateJob{Job valid?}
-
+    LaunchPar --> ValidateJob{Job valid?}
     ValidateJob -->|No| DisplayError[Display error message]
     DisplayError --> EndFail([End])
 
-    ValidateJob -->|Yes| CheckBusiness{Business software running?}
-
-    CheckBusiness -->|Yes| LogBlock[Log blocked attempt]
-    LogBlock --> DisplayBlocked[Display blocked message]
-    DisplayBlocked --> EndFail
-
-    CheckBusiness -->|No| SetActive[Set state to ACTIVE]
-
+    ValidateJob -->|Yes| SetActive[Set state to ACTIVE]
     SetActive --> ScanSource[Scan source directory]
 
     ScanSource --> CheckType{Backup type?}
-
     CheckType -->|Full| ProcessAll[Process all files]
     CheckType -->|Differential| FilterModified[Filter modified files only]
 
     ProcessAll --> CopyLoop
     FilterModified --> CopyLoop
 
-    CopyLoop[Copy file] --> CopyResult{Copy successful?}
+    CopyLoop[Next file] --> CheckPause{Paused or stopped?}
+    CheckPause -->|Stopped| EndStop([End - STOPPED])
+    CheckPause -->|Paused| CheckPause
+    CheckPause -->|Running| CheckBusiness{Business software running?}
 
-    CopyResult -->|No| HandleError[Log error and notify user]
-    HandleError --> MoreFiles
+    CheckBusiness -->|Yes| CheckBusiness
+    CheckBusiness -->|No| CheckPriority{Non-priority file & priority pending?}
 
-    CopyResult -->|Yes| CheckEncrypt{File eligible for encryption?}
+    CheckPriority -->|Yes| CheckPriority
+    CheckPriority -->|No| CheckLarge{File size > n Ko & slot busy?}
 
-    CheckEncrypt -->|Yes| Encrypt[Encrypt file via CryptoSoft]
+    CheckLarge -->|Yes| WaitSlot[Wait for large file slot]
+    WaitSlot --> CopyFile[Copy file]
+    CheckLarge -->|No| CopyFile
+
+    CopyFile --> CheckEncrypt{File eligible for encryption?}
+    CheckEncrypt -->|Yes| Encrypt[Encrypt via CryptoSoft]
     Encrypt --> LogFile[Log transfer details]
     CheckEncrypt -->|No| LogFile
 
-    LogFile --> UpdateProgress[Update state and progress]
+    LogFile --> UpdateProgress[Update state & progress]
     UpdateProgress --> MoreFiles{More files?}
-
     MoreFiles -->|Yes| CopyLoop
     MoreFiles -->|No| SetCompleted[Set state to COMPLETED]
-
-    SetCompleted --> DisplaySuccess[Display success message]
-    DisplaySuccess --> EndSuccess([End])
+    SetCompleted --> EndSuccess([End - COMPLETED])
 
     style Start fill:#2196F3,color:#fff
     style EndFail fill:#f44336,color:#fff
+    style EndStop fill:#f44336,color:#fff
     style EndSuccess fill:#4CAF50,color:#fff
     style ValidateJob fill:#FFE4B5
-    style CheckBusiness fill:#FFE4B5
     style CheckType fill:#FFE4B5
-    style CopyResult fill:#FFE4B5
+    style CheckPause fill:#FFE4B5
+    style CheckBusiness fill:#FFE4B5
+    style CheckPriority fill:#FFE4B5
+    style CheckLarge fill:#FFE4B5
     style CheckEncrypt fill:#FFE4B5
     style MoreFiles fill:#FFE4B5
 ```
+

@@ -31,7 +31,9 @@ public partial class HomeViewModel : ViewModelBase
 
     public ObservableCollection<SelectableJob> Jobs { get; } = new();
 
-    public LocalizationHelper Loc => LocalizationHelper.Instance;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PauseResumeText))]
+    private LanguageProxy _loc = new();
 
     [ObservableProperty]
     private string _newName = string.Empty;
@@ -51,10 +53,17 @@ public partial class HomeViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isExecuting;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PauseResumeText))]
+    private bool _isPaused;
+
+    public string PauseResumeText => IsPaused ? Loc["BtnResume"] : Loc["BtnPause"];
+
     public HomeViewModel(Configuration configuration, BackupService backupService)
     {
         _configuration = configuration;
         _backupService = backupService;
+        LocalizationHelper.Instance.PropertyChanged += (_, _) => Loc = new LanguageProxy();
         RefreshJobs();
     }
 
@@ -90,22 +99,8 @@ public partial class HomeViewModel : ViewModelBase
         var selected = Jobs.Where(j => j.IsSelected).Select(j => j.Job).ToList();
         if (selected.Count == 0) return;
 
-        IsExecuting = true;
-        StatusMessage = Loc["JobExecuting"];
-        try
-        {
-            var ids = selected.Select(j => j.Id).ToList();
-            bool result = await Task.Run(() => _backupService.ExecuteSequential(ids));
-            StatusMessage = result ? Loc["JobSuccess"] : Loc["JobError"];
-        }
-        catch (Exception)
-        {
-            StatusMessage = Loc["JobError"];
-        }
-        finally
-        {
-            IsExecuting = false;
-        }
+        var ids = selected.Select(j => j.Id).ToList();
+        await RunBackupAsync(() => _backupService.ExecuteSequential(ids));
     }
 
     [RelayCommand]
@@ -123,21 +118,7 @@ public partial class HomeViewModel : ViewModelBase
     [RelayCommand]
     private async Task ExecuteJobAsync(BackupJob job)
     {
-        IsExecuting = true;
-        StatusMessage = Loc["JobExecuting"];
-        try
-        {
-            bool result = await Task.Run(() => _backupService.ExecuteJob(job));
-            StatusMessage = result ? Loc["JobSuccess"] : Loc["JobError"];
-        }
-        catch (Exception)
-        {
-            StatusMessage = Loc["JobError"];
-        }
-        finally
-        {
-            IsExecuting = false;
-        }
+        await RunBackupAsync(() => _backupService.ExecuteJob(job));
     }
 
     [RelayCommand]
@@ -153,6 +134,64 @@ public partial class HomeViewModel : ViewModelBase
         bool allSelected = Jobs.All(j => j.IsSelected);
         foreach (var j in Jobs)
             j.IsSelected = !allSelected;
+    }
+
+    [RelayCommand]
+    private void PauseResume()
+    {
+        if (!IsExecuting) return;
+
+        if (_backupService.IsPaused)
+        {
+            _backupService.Resume();
+            IsPaused = false;
+            StatusMessage = Loc["BackupResumed"];
+        }
+        else
+        {
+            _backupService.Pause();
+            IsPaused = true;
+            StatusMessage = Loc["BackupPaused"];
+        }
+    }
+
+    [RelayCommand]
+    private void Stop()
+    {
+        if (!IsExecuting) return;
+
+        _backupService.Stop();
+        IsPaused = false;
+        StatusMessage = Loc["BackupStopped"];
+    }
+
+    private async Task RunBackupAsync(Func<bool> execute)
+    {
+        IsExecuting = true;
+        IsPaused = false;
+        StatusMessage = Loc["JobExecuting"];
+
+        try
+        {
+            bool result = await Task.Run(execute);
+            if (_backupService.IsStopping)
+            {
+                StatusMessage = Loc["BackupStopped"];
+            }
+            else
+            {
+                StatusMessage = result ? Loc["JobSuccess"] : Loc["JobError"];
+            }
+        }
+        catch (Exception)
+        {
+            StatusMessage = Loc["JobError"];
+        }
+        finally
+        {
+            IsExecuting = false;
+            IsPaused = false;
+        }
     }
 
     private void RefreshJobs()

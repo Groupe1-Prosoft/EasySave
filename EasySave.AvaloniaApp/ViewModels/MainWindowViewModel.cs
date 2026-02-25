@@ -12,7 +12,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly HomeViewModel _homeViewModel;
     private readonly SettingsViewModel _settingsViewModel;
 
-    public LocalizationHelper Loc => LocalizationHelper.Instance;
+    [ObservableProperty]
+    private LanguageProxy _loc = new();
 
     [ObservableProperty]
     private bool _isPaneOpen;
@@ -26,6 +27,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _homeViewModel = homeViewModel;
         _settingsViewModel = settingsViewModel;
         CurrentPage = _homeViewModel;
+        LocalizationHelper.Instance.PropertyChanged += (_, _) => Loc = new LanguageProxy();
     }
 
     [RelayCommand]

@@ -12,7 +12,8 @@ public partial class SettingsViewModel : ViewModelBase
 {
     private readonly Configuration _configuration;
 
-    public LocalizationHelper Loc => LocalizationHelper.Instance;
+    [ObservableProperty]
+    private LanguageProxy _loc = new();
 
     [ObservableProperty]
     private string _cryptoSoftPath = string.Empty;
@@ -40,6 +41,7 @@ public partial class SettingsViewModel : ViewModelBase
     public SettingsViewModel(Configuration configuration)
     {
         _configuration = configuration;
+        LocalizationHelper.Instance.PropertyChanged += (_, _) => Loc = new LanguageProxy();
         LoadFromConfig();
     }
 

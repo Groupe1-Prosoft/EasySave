@@ -21,6 +21,11 @@ namespace EasyLog
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets the name of the computer or user.
+        /// </summary>
+        public string ClientName { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets the source file path.
         /// </summary>
         public string Source { get; set; } = string.Empty;
@@ -41,7 +46,7 @@ namespace EasyLog
         public long TransferTime { get; set; }
 
         /// <summary>
-        /// Gets or sets the encryption time in milliseconds (0 = none, >0 = time, &lt;0 = error).
+        /// Gets or sets the encryption time in milliseconds.
         /// </summary>
         public long EncryptionTime { get; set; }
 

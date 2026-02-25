@@ -9,16 +9,7 @@ using EasySave.Models;
 
 namespace EasySave.Services
 {
-<<<<<<< HEAD
-    /// <summary>
-    /// Manages backup execution and logging.
-    /// Dependencies are NOW INJECTED (not created inside constructor).
-    /// This enables true Dependency Injection: BackupService doesn't control object creation.
-    /// </summary>
     public class BackupService
-=======
-    public class BackupService : IBackupService
->>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
     {
         private readonly ILogger _logger;
         private readonly Configuration _configuration;
@@ -30,10 +21,10 @@ namespace EasySave.Services
         private bool _stopRequested;
         private bool _isRunning;
 
+        // Semaphores to manage concurrency
         private readonly SemaphoreSlim _largeFileSemaphore = new SemaphoreSlim(1, 1);
 
-
-        // Dependencies are injected from outside to decouple object creation
+        // Dependencies are injected to decouple object creation
         public BackupService(
             Configuration configuration,
             ILogger logger,
@@ -46,25 +37,12 @@ namespace EasySave.Services
             _businessMonitor = businessMonitor;
         }
 
-<<<<<<< HEAD
-        /// <summary>
-        /// Gets whether the backup is currently paused.
-        /// </summary>
         public bool IsPaused => !_pauseEvent.IsSet;
 
-        /// <summary>
-        /// Gets whether a backup is currently running.
-        /// </summary>
         public bool IsRunning => _isRunning;
 
-        /// <summary>
-        /// Gets whether a stop request has been issued.
-        /// </summary>
         public bool IsStopping => _stopRequested;
 
-        /// <summary>
-        /// Pauses the current backup execution.
-        /// </summary>
         public void Pause()
         {
             if (!_isRunning || IsPaused) return;
@@ -72,9 +50,6 @@ namespace EasySave.Services
             UpdateState("PAUSE");
         }
 
-        /// <summary>
-        /// Resumes the current backup execution.
-        /// </summary>
         public void Resume()
         {
             if (!_isRunning || !IsPaused) return;
@@ -82,9 +57,6 @@ namespace EasySave.Services
             UpdateState("ACTIF");
         }
 
-        /// <summary>
-        /// Requests to stop the current backup execution.
-        /// </summary>
         public void Stop()
         {
             if (!_isRunning) return;
@@ -94,80 +66,21 @@ namespace EasySave.Services
             UpdateState("ARRETE");
         }
 
-        /// <summary>
-        /// Executes a backup job.
-        /// </summary>
         public bool ExecuteJob(BackupJob job)
         {
             InitializeExecution();
 
             try
-=======
-        public bool ExecuteJob(BackupJob job)
-        {
-            // Sync tool paths and business software name with current configuration
-            _cryptoSoftService.SetPath(_configuration.CryptoSoftPath);
-            _businessMonitor.SetProcessName(_configuration.GetBusinessSoftwareName());
-
-            if (!job.Validate()) return false;
-
-            // Block execution if business software is running
-            if (_businessMonitor.IsRunning())
->>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
             {
                 _cryptoSoftService.SetPath(_configuration.CryptoSoftPath);
                 _businessMonitor.SetProcessName(_configuration.GetBusinessSoftwareName());
 
                 if (!job.Validate()) return false;
 
+                // Stop execution if business software is detected
                 if (_businessMonitor.IsRunning())
                 {
-<<<<<<< HEAD
                     var blockLog = new LogData
-=======
-                    Timestamp = DateTime.Now,
-                    Name = job.Name ?? string.Empty,
-                    Source = job.SourceDir ?? string.Empty,
-                    Target = job.TargetDir ?? string.Empty,
-                    Size = 0,
-                    TransferTime = 0,
-                    EncryptionTime = -1
-                };
-                _logger.WriteLog(blockLog);
-                return false;
-            }
-
-            if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
-
-            var files = GetFileList(job.SourceDir!);
-            long totalSize = CalculateTotalSize(files);
-
-            // Initialize the state for progress tracking
-            _currentState = new BackupState
-            {
-                JobName = job.Name,
-                Timestamp = DateTime.Now,
-                State = "ACTIF",
-                TotalFiles = files.Count,
-                TotalSize = totalSize,
-                FilesRemaining = files.Count,
-                SizeRemaining = totalSize,
-                Progression = 0
-            };
-
-            _currentState.UpdateStateJSON();
-
-            int processed = 0;
-            foreach (var file in files)
-            {
-                string relative = Path.GetRelativePath(job.SourceDir!, file);
-                string targetFile = Path.Combine(job.TargetDir!, relative);
-
-                // Skip file if differential backup conditions are not met
-                if (job.Type == BackupType.Differential && File.Exists(targetFile))
-                {
-                    if (File.GetLastWriteTimeUtc(file) <= File.GetLastWriteTimeUtc(targetFile))
->>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
                     {
                         Timestamp = DateTime.Now,
                         Name = job.Name ?? string.Empty,
@@ -183,36 +96,13 @@ namespace EasySave.Services
 
                 if (!Directory.Exists(job.TargetDir)) Directory.CreateDirectory(job.TargetDir!);
 
-<<<<<<< HEAD
                 var files = GetFileList(job.SourceDir!);
                 long totalSize = CalculateTotalSize(files);
 
                 _currentState = new BackupState
-=======
-                // Handle encryption with lock management for safe execution
-                if (_cryptoSoftService.IsEligible(targetFile, _configuration.ExtensionsToEncrypt))
-                {
-                    _cryptoSoftService.AcquireLock();
-                    try
-                    {
-                        var cryptoWatch = Stopwatch.StartNew();
-                        _cryptoSoftService.EncryptFile(targetFile);
-                        cryptoWatch.Stop();
-                        encryptionTime = cryptoWatch.ElapsedMilliseconds;
-                    }
-                    finally
-                    {
-                        _cryptoSoftService.ReleaseLock();
-                    }
-                }
-
-                // Log file transfer and encryption details
-                var data = new LogData
->>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
                 {
                     JobName = job.Name,
                     Timestamp = DateTime.Now,
-<<<<<<< HEAD
                     State = "ACTIF",
                     TotalFiles = files.Count,
                     TotalSize = totalSize,
@@ -221,34 +111,12 @@ namespace EasySave.Services
                     Progression = 0
                 };
 
-=======
-                    Name = job.Name ?? string.Empty,
-                    Source = file,
-                    Target = targetFile,
-                    Size = new FileInfo(file).Length,
-                    TransferTime = transferTime,
-                    EncryptionTime = encryptionTime
-                };
-
-                _logger.WriteLog(data);
-
-                processed++;
-                _currentState.FilesRemaining--;
-                _currentState.SizeRemaining -= data.Size;
-                UpdateProgress(processed, files.Count);
-            }
-
-            // Mark the job as inactive when finished
-            if (_currentState != null)
-            {
-                _currentState.State = "NON ACTIF";
-                _currentState.Timestamp = DateTime.Now;
->>>>>>> 25e6b19 (feat: implement SemaphoreSlim for CryptoSoft mutual exclusion (Task 7))
                 _currentState.UpdateStateJSON();
 
                 int processed = 0;
                 foreach (var file in files)
                 {
+                    // Check for pause or stop requests before processing file
                     if (!WaitIfPausedOrStopped()) return false;
 
                     string relative = Path.GetRelativePath(job.SourceDir!, file);
@@ -271,11 +139,18 @@ namespace EasySave.Services
                     long limitBytes = _configuration.MaxLargeFileSizeKB * 1024;
                     bool isLarge = limitBytes > 0 && fileSizeBytes > limitBytes;
 
+                    // Copy file (using large file semaphore if needed)
                     if (isLarge)
                     {
                         _largeFileSemaphore.Wait();
-                        try { transferTime = CopyFile(file, targetFile); }
-                        finally { _largeFileSemaphore.Release(); }
+                        try
+                        {
+                            transferTime = CopyFile(file, targetFile);
+                        }
+                        finally
+                        {
+                            _largeFileSemaphore.Release();
+                        }
                     }
                     else
                     {
@@ -284,10 +159,19 @@ namespace EasySave.Services
 
                     long encryptionTime = 0;
 
+                    // Encrypt file using a lock to prevent concurrent access (Task 7)
                     if (_cryptoSoftService.IsEligible(targetFile, _configuration.ExtensionsToEncrypt))
                     {
-                        long time = _cryptoSoftService.EncryptFile(targetFile);
-                        if (time >= 0) encryptionTime = time;
+                        _cryptoSoftService.AcquireLock();
+                        try
+                        {
+                            long time = _cryptoSoftService.EncryptFile(targetFile);
+                            if (time >= 0) encryptionTime = time;
+                        }
+                        finally
+                        {
+                            _cryptoSoftService.ReleaseLock();
+                        }
                     }
 
                     var data = new LogData
@@ -374,9 +258,6 @@ namespace EasySave.Services
             _currentState.UpdateStateJSON();
         }
 
-        /// <summary>
-        /// Initializes execution control state.
-        /// </summary>
         private void InitializeExecution()
         {
             _stopRequested = false;
@@ -386,9 +267,6 @@ namespace EasySave.Services
             _stopCts = new CancellationTokenSource();
         }
 
-        /// <summary>
-        /// Waits if paused, or exits if a stop request was issued.
-        /// </summary>
         private bool WaitIfPausedOrStopped()
         {
             if (_stopRequested) return false;
@@ -403,9 +281,6 @@ namespace EasySave.Services
             return !_stopRequested;
         }
 
-        /// <summary>
-        /// Updates the current state and persists it.
-        /// </summary>
         private void UpdateState(string state)
         {
             if (_currentState == null) return;

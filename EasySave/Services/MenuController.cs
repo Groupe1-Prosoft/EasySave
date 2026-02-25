@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EasySave.Models;
 using EasySave.Views;
 using EasySave.Localization;
@@ -82,7 +84,7 @@ namespace EasySave.Services
                 "4" => HandleExecuteAllJobs(),
                 "5" => HandleDeleteJob(),
                 "6" => HandleChangeLogFormat(),
-                "7" => false, // Exit
+                "7" => false,
                 _ => HandleInvalidOption(),
             };
         }
@@ -182,11 +184,10 @@ namespace EasySave.Services
             if (int.TryParse(inputExec, out int execId))
             {
                 var job = jobsExec.Find(j => j.Id == execId);
-                if (job != null && _backupService.ExecuteJob(job))
+                if (job != null)
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine(_languageManager.GetText("BackupFinished"));
-                    Console.ResetColor();
+                    bool result = RunBackupWithControls(() => _backupService.ExecuteJob(job));
+                    HandleExecutionResult(result);
                 }
                 else
                 {
@@ -224,11 +225,8 @@ namespace EasySave.Services
             List<int> ids = new List<int>();
             foreach (var job in jobsSeq) ids.Add(job.Id);
 
-            _backupService.ExecuteSequential(ids);
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(_languageManager.GetText("BackupFinished"));
-            Console.ResetColor();
+            bool result = RunBackupWithControls(() => _backupService.ExecuteSequential(ids));
+            HandleExecutionResult(result);
 
             Console.WriteLine();
             Console.WriteLine(_languageManager.GetText("PressEnterReturn"));
@@ -295,6 +293,66 @@ namespace EasySave.Services
         {
             _view.DisplayError(_languageManager.GetText("InvalidOption"));
             return true;
+        }
+
+        /// <summary>
+        /// Runs a backup operation with pause/resume/stop controls.
+        /// </summary>
+        private bool RunBackupWithControls(Func<bool> execute)
+        {
+            _view.ShowExecutionControls();
+
+            var task = Task.Run(execute);
+            while (!task.IsCompleted)
+            {
+                if (Console.KeyAvailable)
+                {
+                    var key = Console.ReadKey(true).Key;
+                    if (key == ConsoleKey.P)
+                    {
+                        if (_backupService.IsPaused)
+                        {
+                            _backupService.Resume();
+                            _view.ShowStatus(_languageManager.GetText("BackupResumed"));
+                        }
+                        else
+                        {
+                            _backupService.Pause();
+                            _view.ShowStatus(_languageManager.GetText("BackupPaused"));
+                        }
+                    }
+                    else if (key == ConsoleKey.S)
+                    {
+                        _backupService.Stop();
+                        _view.ShowStatus(_languageManager.GetText("BackupStopped"));
+                    }
+                }
+                Thread.Sleep(50);
+            }
+
+            return task.Result;
+        }
+
+        /// <summary>
+        /// Displays the result of a backup execution.
+        /// </summary>
+        private void HandleExecutionResult(bool result)
+        {
+            if (result)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(_languageManager.GetText("BackupFinished"));
+                Console.ResetColor();
+                return;
+            }
+
+            if (_backupService.IsStopping)
+            {
+                _view.ShowStatus(_languageManager.GetText("BackupStopped"));
+                return;
+            }
+
+            _view.DisplayError(_languageManager.GetText("BackupFailed"));
         }
     }
 }

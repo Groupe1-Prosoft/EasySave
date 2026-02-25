@@ -11,5 +11,12 @@ namespace EasySave.Services
     {
         bool ExecuteJob(BackupJob job);
         bool ExecuteSequential(List<int> ids);
+        bool ExecuteParallel(List<int> ids);
+        void PauseJob(int id);
+        void ResumeJob(int id);
+        void StopJob(int id);
+        void PauseAll();
+        void ResumeAll();
+        void StopAll();
     }
 }

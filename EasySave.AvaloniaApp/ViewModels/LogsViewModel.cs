@@ -13,13 +13,15 @@ public partial class LogsViewModel : ViewModelBase
 {
     public ObservableCollection<LogEntry> Logs { get; } = new();
 
-    public LocalizationHelper Loc => LocalizationHelper.Instance;
+    [ObservableProperty]
+    private LanguageProxy _loc = new();
 
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
     public LogsViewModel()
     {
+        LocalizationHelper.Instance.PropertyChanged += (_, _) => Loc = new LanguageProxy();
         LoadLogs();
     }
 

@@ -31,7 +31,9 @@ public partial class HomeViewModel : ViewModelBase
 
     public ObservableCollection<SelectableJob> Jobs { get; } = new();
 
-    public LocalizationHelper Loc => LocalizationHelper.Instance;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PauseResumeText))]
+    private LanguageProxy _loc = new();
 
     [ObservableProperty]
     private string _newName = string.Empty;
@@ -61,6 +63,7 @@ public partial class HomeViewModel : ViewModelBase
     {
         _configuration = configuration;
         _backupService = backupService;
+        LocalizationHelper.Instance.PropertyChanged += (_, _) => Loc = new LanguageProxy();
         RefreshJobs();
     }
 

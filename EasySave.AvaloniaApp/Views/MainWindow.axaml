@@ -38,7 +38,7 @@
 			<Setter Property="Background" Value="#EDE9FE"/>
 			<Setter Property="Foreground" Value="#6366F1"/>
 		</Style>
-		
+
 		<!-- Window control buttons -->
 		<Style Selector="Button.wnd-btn">
 			<Setter Property="Background" Value="Transparent"/>
@@ -89,8 +89,8 @@
 	<DockPanel>
 		<!-- Title Bar -->
 		<Border DockPanel.Dock="Top" Background="#FAFAFA" Height="40"
-        IsHitTestVisible="True" Name="TitleBar"
-        PointerPressed="TitleBar_PointerPressed">
+				IsHitTestVisible="True" Name="TitleBar"
+				PointerPressed="TitleBar_PointerPressed">
 			<Grid ColumnDefinitions="Auto,*,Auto">
 				<!-- Logo + Title -->
 				<StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center">
@@ -125,7 +125,6 @@
 							Name="BtnClose" Click="BtnClose_Click"
 							ToolTip.Tip="Fermer"/>
 				</StackPanel>
-
 			</Grid>
 		</Border>
 

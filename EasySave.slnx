@@ -6,5 +6,6 @@
   <Project Path="CryptoSoft/CryptoSoft.csproj" />
   <Project Path="EasyLog/EasyLog.csproj" />
   <Project Path="EasySave.AvaloniaApp/EasySave.AvaloniaApp.csproj" />
+  <Project Path="EasySave.LogServer/EasySave.LogServer.csproj" />
   <Project Path="EasySave/EasySave.csproj" />
 </Solution>

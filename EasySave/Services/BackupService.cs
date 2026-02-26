@@ -48,6 +48,9 @@ namespace EasySave.Services
 
         public bool IsStopping => _stopRequested;
 
+        public int Progress => _currentState?.Progression ?? 0;
+
+
         public void Pause()
         {
             if (!_isRunning || IsPaused) return;

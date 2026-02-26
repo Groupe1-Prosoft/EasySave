@@ -75,6 +75,20 @@
             <TextBlock Text="{Binding StatusMessage}" Foreground="#6366F1" FontWeight="SemiBold"
                        IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 
+            <!-- Progress bar -->
+            <ProgressBar Value="{Binding Progress}"
+                         Minimum="0" Maximum="100"
+                         Height="8"
+                         CornerRadius="4"
+                         Foreground="#6366F1"
+                         Background="#E0E7FF"
+                         IsVisible="{Binding IsExecuting}"/>
+
+
+
+
+
+
             <!-- Create Job Card -->
             <Border Background="White" CornerRadius="8" Padding="24"
                     BoxShadow="0 1 3 0 #1A000000">

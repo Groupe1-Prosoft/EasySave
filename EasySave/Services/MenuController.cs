@@ -225,7 +225,7 @@ namespace EasySave.Services
             List<int> ids = new List<int>();
             foreach (var job in jobsSeq) ids.Add(job.Id);
 
-            bool result = RunBackupWithControls(() => _backupService.ExecuteSequential(ids));
+            bool result = RunBackupWithControls(() => _backupService.ExecuteParallel(ids));
             HandleExecutionResult(result);
 
             Console.WriteLine();

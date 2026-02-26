@@ -41,7 +41,7 @@ namespace EasySave
                 {
                     var cmd = services.GetCommandLineService();
                     List<int> ids = cmd.ParseArgument(args[0]);
-                    services.GetBackupService().ExecuteSequential(ids);
+                    services.GetBackupService().ExecuteParallel(ids);
                     return;
                 }
 

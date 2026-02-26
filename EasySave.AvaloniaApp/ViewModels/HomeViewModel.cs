@@ -100,7 +100,8 @@ public partial class HomeViewModel : ViewModelBase
         if (selected.Count == 0) return;
 
         var ids = selected.Select(j => j.Id).ToList();
-        await RunBackupAsync(() => _backupService.ExecuteSequential(ids));
+        await RunBackupAsync(() => _backupService.ExecuteParallel(ids));
+
     }
 
     [RelayCommand]

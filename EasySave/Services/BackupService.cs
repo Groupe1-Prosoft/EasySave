@@ -145,6 +145,15 @@ namespace EasySave.Services
             {
                 if (!WaitIfPausedOrStopped()) return false;
 
+                while (_businessMonitor.IsRunning())
+                {
+                    if (_stopRequested) return false;
+                    UpdateState("PAUSE");
+                    Thread.Sleep(500);
+                }
+                if (_currentState?.State == "PAUSE")
+                    UpdateState("ACTIF");
+
                 bool isPriority = CheckPriorityRule(file);
                 if (!isPriority && _priorityPendingCount > 0)
                 {

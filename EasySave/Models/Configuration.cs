@@ -31,7 +31,7 @@ namespace EasySave.Models
 
 
 
-        // --- Methods matching the diagram ---
+       
 
         public string GetBusinessSoftwareName()
         {

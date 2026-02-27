@@ -36,7 +36,8 @@ namespace EasySave.Services
             _languageManager = LanguageManager.Instance;
 
             // 3. Create logger (depends on configuration.LogFormat)
-            _logger = new Logger(_configuration.LogFormat);
+            // LIGNE CORRIGÉE 1 : Ajout de "both" et de l'URL Docker
+            _logger = new Logger(_configuration.LogFormat, "both", "http://localhost:8080");
 
             // 4. Create business monitor and crypto service (no dependencies)
             _businessSoftwareMonitor = new BusinessSoftwareMonitor();
@@ -87,7 +88,8 @@ namespace EasySave.Services
         /// </summary>
         public void RefreshBackupService()
         {
-            _logger = new Logger(_configuration.LogFormat);
+            // LIGNE CORRIGÉE 2 : Ajout de "both" et de l'URL Docker ici aussi
+            _logger = new Logger(_configuration.LogFormat, "both", "http://localhost:8080");
             _backupService = new BackupService(
                 _configuration,
                 _logger,

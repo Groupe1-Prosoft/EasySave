@@ -8,8 +8,6 @@ namespace EasySave
     /// <summary>
     /// Console entry point for EasySave backup application.
     /// Orchestrates dependency injection and menu flow.
-    /// NOW: Just 15 lines (delegating to ServiceContainer and MenuController).
-    /// BEFORE: 250 lines with all menu logic mixed in.
     /// </summary>
     class Program
     {

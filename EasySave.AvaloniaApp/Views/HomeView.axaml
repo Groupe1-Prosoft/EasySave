@@ -63,6 +63,16 @@
             <Setter Property="Background" Value="#E5E7EB"/>
             <Setter Property="Foreground" Value="#374151"/>
         </Style>
+        <Style Selector="CheckBox /template/ Border#NormalRectangle">
+            <Setter Property="BorderBrush" Value="#6366F1"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+        <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="#6366F1"/>
+            <Setter Property="BorderBrush" Value="#6366F1"/>
+        </Style>
+
     </UserControl.Styles>
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
@@ -74,6 +84,15 @@
             <!-- Status message -->
             <TextBlock Text="{Binding StatusMessage}" Foreground="#6366F1" FontWeight="SemiBold"
                        IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+            <!-- Progress bar -->
+            <ProgressBar Value="{Binding Progress}"
+                         Minimum="0" Maximum="100"
+                         Height="8"
+                         CornerRadius="4"
+                         Foreground="#6366F1"
+                         Background="#E0E7FF"
+                         IsVisible="{Binding IsExecuting}"/>
 
             <!-- Create Job Card -->
             <Border Background="White" CornerRadius="8" Padding="24"
@@ -120,20 +139,20 @@
                             </Grid>
                         </StackPanel>
 
-                        <!-- Create button -->
+                        <!-- Buttons -->
                         <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
                                     Orientation="Horizontal" Spacing="12">
                             <Button Classes="primary" Content="{Binding Loc[BtnCreate]}"
                                     Command="{Binding CreateJobCommand}"/>
+                            <Button Classes="primary" Content="{Binding Loc[BtnSelectAll]}"
+                                    Command="{Binding SelectAllCommand}"
+                                    IsEnabled="{Binding !IsExecuting}"/>
                             <Button Classes="primary" Content="{Binding Loc[BtnExecuteAll]}"
                                     Command="{Binding ExecuteSelectedCommand}"
-
                                     IsEnabled="{Binding !IsExecuting}"/>
-
                             <Button Classes="secondary" Content="{Binding PauseResumeText}"
                                     Command="{Binding PauseResumeCommand}"
                                     IsEnabled="{Binding IsExecuting}"/>
-
                             <Button Classes="danger" Content="{Binding Loc[BtnStop]}"
                                     Command="{Binding StopCommand}"
                                     IsEnabled="{Binding IsExecuting}"/>
@@ -157,8 +176,14 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Background="#F9FAFB" CornerRadius="8" Padding="16" Margin="0,4">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="4">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <!-- Checkbox -->
+                                        <CheckBox Grid.Column="0"
+                                                  IsChecked="{Binding IsSelected}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,12,0"/>
+                                        <!-- Info job -->
+                                        <StackPanel Grid.Column="1" Spacing="4">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <TextBlock Text="{Binding Job.Name}" FontWeight="SemiBold"
                                                            FontSize="14" Foreground="#1E1E1E"/>
@@ -169,24 +194,21 @@
                                             </StackPanel>
                                             <TextBlock Foreground="#64748B" FontSize="12">
                                                 <Run Text="{Binding Job.SourceDir}"/>
-                                                <Run Text=" ? "/>
+                                                <Run Text=" → "/>
                                                 <Run Text="{Binding Job.TargetDir}"/>
                                             </TextBlock>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                        <!-- Boutons ▶ ✖ -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
                                                     VerticalAlignment="Center">
                                             <Button Classes="secondary"
                                                     Content="&#x25B6;"
-
                                                     Command="{Binding #JobsList.DataContext.ExecuteJobCommand}"
                                                     CommandParameter="{Binding Job}"/>
-
                                             <Button Classes="danger"
                                                     Content="&#x2716;"
-
                                                     Command="{Binding #JobsList.DataContext.DeleteJobCommand}"
                                                     CommandParameter="{Binding Job}"/>
-
                                         </StackPanel>
                                     </Grid>
                                 </Border>

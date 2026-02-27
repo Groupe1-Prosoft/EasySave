@@ -8,6 +8,8 @@ using CommunityToolkit.Mvvm.Input;
 using EasySave.AvaloniaApp.Helpers;
 using EasySave.Models;
 using EasySave.Services;
+using System.Threading;
+
 
 namespace EasySave.AvaloniaApp.ViewModels;
 
@@ -57,6 +59,10 @@ public partial class HomeViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(PauseResumeText))]
     private bool _isPaused;
 
+    [ObservableProperty]
+    private int _progress;
+
+
     public string PauseResumeText => IsPaused ? Loc["BtnResume"] : Loc["BtnPause"];
 
     public HomeViewModel(Configuration configuration, BackupService backupService)
@@ -100,7 +106,8 @@ public partial class HomeViewModel : ViewModelBase
         if (selected.Count == 0) return;
 
         var ids = selected.Select(j => j.Id).ToList();
-        await RunBackupAsync(() => _backupService.ExecuteSequential(ids));
+        await RunBackupAsync(() => _backupService.ExecuteParallel(ids));
+
     }
 
     [RelayCommand]
@@ -169,19 +176,25 @@ public partial class HomeViewModel : ViewModelBase
     {
         IsExecuting = true;
         IsPaused = false;
+        Progress = 0;
         StatusMessage = Loc["JobExecuting"];
+
+        using var cts = new CancellationTokenSource();
+        _ = Task.Run(async () =>
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                Progress = _backupService.Progress;
+                await Task.Delay(200, cts.Token).ContinueWith(_ => { });
+            }
+        });
 
         try
         {
             bool result = await Task.Run(execute);
-            if (_backupService.IsStopping)
-            {
-                StatusMessage = Loc["BackupStopped"];
-            }
-            else
-            {
-                StatusMessage = result ? Loc["JobSuccess"] : Loc["JobError"];
-            }
+            Progress = 100;
+            StatusMessage = _backupService.IsStopping ? Loc["BackupStopped"]
+                          : result ? Loc["JobSuccess"] : Loc["JobError"];
         }
         catch (Exception)
         {
@@ -189,10 +202,12 @@ public partial class HomeViewModel : ViewModelBase
         }
         finally
         {
+            cts.Cancel();
             IsExecuting = false;
             IsPaused = false;
         }
     }
+
 
     private void RefreshJobs()
     {

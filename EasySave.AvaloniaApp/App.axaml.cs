@@ -24,30 +24,32 @@ public partial class App : Application
         {
             DisableAvaloniaDataAnnotationValidation();
 
-            // --- DEBUT DU COMPOSITION ROOT (L'Injection de Dépendances) ---
+            
 
-            // 1. On fabrique la configuration
+            // 1. Create the configuration
             var configuration = new Configuration();
             configuration.LoadConfig();
 
-            // 2. On fabrique les services en leur donnant la configuration
-            ILogger logger = new Logger(configuration.LogFormat);
+            // 2. Create services and provide the configuration
+            // FIXED LINE HERE: Enable network ("both") and add Docker URL
+            ILogger logger = new Logger(configuration.LogFormat, "both", "http://localhost:8080");
+
             var businessMonitor = new BusinessSoftwareMonitor();
             var cryptoService = new CryptoSoftService();
 
-            // On donne tout au BackupService
+            // Inject all dependencies into the BackupService
             var backupService = new BackupService(configuration, logger, cryptoService, businessMonitor);
 
-            // 3. On fabrique les sous-menus (Home et Settings)
+            // 3. Create sub-view models (Home and Settings)
             var homeViewModel = new HomeViewModel(configuration, backupService);
             var settingsViewModel = new SettingsViewModel(configuration);
 
-            // 4. On donne les sous-menus au Menu Principal (MainWindowViewModel)
+            // 4. Inject sub-view models into the Main Menu (MainWindowViewModel)
             var mainWindowViewModel = new MainWindowViewModel(homeViewModel, settingsViewModel);
 
-            // --- FIN DU COMPOSITION ROOT ---
+            
 
-            // On lance la fenêtre graphique avec notre ViewModel tout prêt !
+            // Launch the graphical window with our ready-to-use ViewModel!
             desktop.MainWindow = new MainWindow
             {
                 DataContext = mainWindowViewModel,
